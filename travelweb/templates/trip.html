@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A CLUB TRAVEL — Trip Info</title>
+
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/trip.css' %}">
+</head>
+<body class="trip-page">
+
+  <!-- HERO -->
+  <header id="tripHero"
+          class="trip-hero"
+          data-bg="{{ trip.hero_image.url }}"
+          style="--hero:url('{{ trip.hero_image.url }}');">
+    <a class="back-btn" href="{% url 'index' %}" aria-label="Назад"></a>
+
+    <div class="weather hero-weather" title="Local weather">
+      <div class="icon" aria-hidden="true">🌤️</div>
+      <div class="weatherTexts">
+        <span id="weatherTextTop">Weather</span>
+        <span id="weatherText">15°C</span>
+      </div>
+    </div>
+
+    <div class="hero-bottom">
+      <div class="alt">{{ trip.altitude_m }}m</div>
+      <h1 class="trip-short">{{ trip.title_short }}</h1>
+      <div class="faces">
+        <!-- Заглушки-аватары; при необходимости заменим на реальные участия -->
+        <img src="https://i.pravatar.cc/48?img=21" alt="">
+        <img src="https://i.pravatar.cc/48?img=22" alt="">
+        <img src="https://i.pravatar.cc/48?img=23" alt="">
+        <img src="https://i.pravatar.cc/48?img=24" alt="">
+        <span class="more">+{{ trip.booked }}</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="trip-sheet">
+    <button class="fav-fab" aria-label="Добавить в избранное"></button>
+
+    <div class="sheet-head">
+      <div class="country">
+        <img src="https://flagcdn.com/24x18/{{ trip.country.iso2|lower }}.png" width="24" height="18" alt="">
+        <span>{{ trip.country.name|upper }}</span>
+      </div>
+
+      <h2 class="trip-full">{{ trip.title_full }}</h2>
+
+      <div class="chips">
+        <span class="chip"><i class="ic cal"></i>{{ trip.date_range_str }}</span>
+        <span class="chip"><i class="ic group"></i>{{ trip.booked }} / {{ trip.capacity }}</span>
+        <span class="chip"><i class="ic city"></i>{{ trip.cities_count }} cities</span>
+      </div>
+    </div>
+
+    <!-- ТАБ-БЛОК -->
+    <section class="info-card" aria-labelledby="tripInfoTitle">
+      <div class="info-tabs" role="tablist" aria-label="Trip info tabs">
+        <button class="info-tab" role="tab" aria-selected="true" aria-controls="panel-about" id="tab-about">Инфо</button>
+        <button class="info-tab" role="tab" aria-selected="false" aria-controls="panel-important" id="tab-important">Важно</button>
+        <button class="info-tab" role="tab" aria-selected="false" aria-controls="panel-payment" id="tab-payment">Детали платежа</button>
+      </div>
+
+      <div class="tabs-body" id="tabsBody">
+        <div class="tab-panel" role="tabpanel" id="panel-about" aria-labelledby="tab-about">
+          {{ trip.about_md|linebreaks }}
+        </div>
+
+        <div class="tab-panel" role="tabpanel" id="panel-important" aria-labelledby="tab-important" hidden>
+          {{ trip.important_md|linebreaks }}
+        </div>
+
+        <div class="tab-panel" role="tabpanel" id="panel-payment" aria-labelledby="tab-payment" hidden>
+          {{ trip.payment_md|linebreaks }}
+        </div>
+      </div>
+
+      <div class="paybar">
+        <div>
+          <div class="pay-amount">{{ trip.price_usd }} USD</div>
+          <span class="pay-note">За 1 человека</span>
+        </div>
+        <a href="#" class="btn-book">Забронировать</a>
+      </div>
+    </section>
+
+    <div class="spacer"></div>
+  </main>
+
+  <!-- Нижний навбар -->
+  <nav class="bottom-nav" aria-label="Bottom navigation">
+    <div class="bottom-inner">
+      <a class="tab tab--home" href="{% url 'index' %}"><span class="ico"></span></a>
+      <a class="tab tab--support" href="#"><span class="ico"></span></a>
+      <a class="tab tab--saved" href="#"><span class="ico"></span></a>
+      <a class="tab tab--profile" href="#"><span class="ico" id="navAvatar"></span></a>
+    </div>
+  </nav>
+
+  <!-- Tabs logic with smooth height -->
+  <script>
+    (function(){
+      const tabs = document.querySelectorAll('.info-tab');
+      const panels = {
+        about:     document.getElementById('panel-about'),
+        important: document.getElementById('panel-important'),
+        payment:   document.getElementById('panel-payment')
+      };
+      const body = document.getElementById('tabsBody');
+
+      function setBodyHeight(el){
+        const h = el.offsetHeight;
+        body.style.height = h + 'px';
+      }
+      window.requestAnimationFrame(()=> setBodyHeight(panels.about));
+
+      tabs.forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const id = btn.id.replace('tab-','');
+          tabs.forEach(b=> b.setAttribute('aria-selected', b===btn ? 'true' : 'false'));
+          Object.keys(panels).forEach(k=>{
+            panels[k].hidden = (k!==id);
+          });
+          setBodyHeight(panels[id]);
+        });
+      });
+
+      window.addEventListener('resize', ()=>{
+        const current = [...Object.values(panels)].find(p=>!p.hidden);
+        if(current) setBodyHeight(current);
+      }, { passive:true });
+    })();
+  </script>
+
+  <!-- Ваши скрипты страницы тура (если есть) -->
+  <script src="{% static 'js/trip.js' %}"></script>
+</body>
+</html>

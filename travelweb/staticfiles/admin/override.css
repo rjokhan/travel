@@ -1,0 +1,254 @@
+/* ====== THEME COLORS ====== */
+:root {
+  --brand-accent: #be0036;
+  --brand-dark: #1c1f26;
+  --brand-dark-2: #2a2d34;
+
+  --card-glass: rgba(255,255,255,.05);
+  --card-border: rgba(255,255,255,.14);
+}
+
+/* ====== Базовые настройки ====== */
+body {
+  background: linear-gradient(135deg, var(--brand-dark), var(--brand-dark-2));
+  color: #fff;
+  font-family: "Tw Cent Mt", sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ====== Layout ====== */
+#ac-content {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+#ac-main {
+  flex: 1;
+  padding: 24px;
+  margin-left: 240px; /* ширина sidebar */
+  display: flex;
+  justify-content: center;
+}
+
+/* ====== Общая сетка ====== */
+.ac-container {
+  width: 100%;
+  max-width: 1200px;
+  padding: 24px;
+}
+
+.ac-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(360px,1fr));
+  gap: 24px;
+  margin-bottom: 28px;
+  justify-content: center;
+}
+
+/* ====== Карточки ====== */
+.ac-card {
+  background: var(--card-glass);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.3);
+  overflow: hidden;
+  transition: transform .25s ease, background .25s ease, box-shadow .25s ease;
+}
+
+.ac-card:hover {
+  transform: translateY(-8px);
+  background: rgba(255,255,255,.08);
+  box-shadow: 0 12px 32px rgba(0,0,0,.45);
+}
+
+.ac-card__head {
+  padding: 16px 20px;
+  font-weight: 600;
+  font-size: 16px;
+  background: rgba(0,0,0,.28);
+  color: #fff;
+}
+
+.ac-card__body {
+  padding: 18px 20px;
+  color: #fff;
+  font-size: 14px;
+}
+
+/* ====== Списки моделей ====== */
+.ac-models {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ac-model {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  transition: background .2s ease;
+}
+
+.ac-model:hover {
+  background: rgba(255,255,255,.06);
+}
+
+.ac-model:last-child {
+  border-bottom: none;
+}
+
+.ac-model__name {
+  font-weight: 500;
+  font-size: 14px;
+  color: #fff;
+  text-decoration: none;
+  transition: color .2s ease;
+}
+
+.ac-model__name:hover {
+  color: var(--brand-accent);
+}
+
+/* ====== Чипы и кнопки ====== */
+.ac-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.15);
+  color: #fff;
+}
+
+.btn {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+
+.btn-primary {
+  background: var(--brand-accent);
+  color: #fff;
+  border: none;
+}
+
+.btn-outline-secondary {
+  border: 1px solid rgba(255,255,255,.25);
+  color: #fff;
+  background: transparent;
+}
+
+.btn-success {
+  background: #28a745;
+  color: #fff;
+}
+
+.btn-info {
+  background: #17a2b8;
+  color: #fff;
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+/* ====== Служебные ====== */
+.empty-state {
+  padding: 14px;
+  text-align: center;
+  color: rgba(255,255,255,.6);
+  font-size: 14px;
+}
+
+.ac-stats {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ac-stats li {
+  padding: 5px 0;
+}
+
+/* ====== Sidebar Jazzmin ====== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 240px;
+  height: 100vh;
+  background: var(--brand-dark-2);
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  transition: background .2s ease, color .2s ease;
+}
+
+.sidebar .nav-link .nav-icon {
+  font-size: 18px;
+  min-width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar .nav-link:hover {
+  background: rgba(255,255,255,.08);
+  color: var(--brand-accent);
+}
+
+.sidebar .nav-link.active {
+  background: var(--brand-accent);
+  color: #fff;
+}
+
+.sidebar .nav-link.active .nav-icon {
+  color: #fff;
+}
+
+/* ====== Django tables ====== */
+#changelist-form table {
+  background: var(--card-glass);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+}
+
+#changelist-form thead th {
+  background: rgba(0,0,0,.35);
+  color: #fff;
+  padding: 12px;
+}
+
+#changelist-form tbody tr {
+  transition: background .2s ease;
+}
+
+#changelist-form tbody tr:hover {
+  background: rgba(255,255,255,.05);
+}

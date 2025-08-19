@@ -1,0 +1,180 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A CLUB TRAVEL — Index</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+  <!-- КРУГЛОЕ ФОНОВОЕ ВИДЕО -->
+  <div class="bg-circle" aria-hidden="true">
+    <video id="bgCircleVideo"
+           class="bg-circle__video"
+           autoplay
+           muted
+           loop
+           playsinline
+           preload="metadata"
+           poster="{% static 'img/bg-poster.jpg' %}">
+      <source src="{% static 'video/bg-hero.mp4' %}" type="video/mp4">
+    </video>
+  </div>
+
+  <!-- Попап: создание пользователя -->
+  <div id="createUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="createUserTitle">
+    <div class="modal-card">
+      <div class="modal-hd">
+        <h3 id="createUserTitle">Добро пожаловать в A CLUB TRAVEL</h3>
+        <button class="xbtn" data-close>&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="field">
+            <label for="name">Ваше имя</label>
+            <input id="name" type="text" placeholder="Например, Жахонгир" autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="phone">Телефон (необязательно)</label>
+            <input id="phone" type="tel" placeholder="+998 xx xxx xx xx" autocomplete="tel">
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn btn-primary" id="saveUserBtn">Продолжить</button>
+          <button class="btn btn-ghost" data-close>Отмена</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Шапка -->
+  <header class="topbar">
+    <div class="container">
+      <div class="greet">
+        <div id="hi" class="hi">Салом, меҳмон 👋</div>
+      </div>
+
+      <div class="top-actions">
+        <div class="weather" title="Local weather">
+          <div class="icon" aria-hidden="true"></div>
+          <div class="weatherTexts">
+            <span id="weatherTextTop">Weather</span>
+            <span id="weatherText">15°C</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Контент -->
+  <main class="container">
+    <section class="layout">
+      <div class="copy">
+        <div class="copy-grid">
+          <span id="locationBadge" class="badge">Loading location…</span>
+          <h1 class="title" id="heroTitle">A CLUB<br/>TRAVEL</h1>
+          <h1 class="titleDesc" id="heroTitleDesctop">A CLUB TRAVEL</h1>
+
+          <!-- Триггер поиска справа -->
+          <button class="search-trigger" id="searchTrigger" aria-label="Search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+              <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Оверлей поиска -->
+      <div class="search-overlay" id="searchOverlay" aria-hidden="true">
+        <form class="search-bar" role="search" id="searchForm">
+          <input class="search-field" id="searchField" type="text" placeholder="Search…" enterkeyhint="search" />
+          <button type="button" class="search-close" id="searchClose" aria-label="Close">✕</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- TRIPS SLIDER -->
+    <section class="trips">
+      <h2 class="trips-title">Popular trips</h2>
+
+      <div class="trip-scroller" id="tripScroller" aria-label="Trip slider">
+
+        {% for t in trips %}
+        <article class="trip-card theme-{{ t.theme }}">
+          <div class="trip-pill" aria-hidden="true"></div>
+
+          <!-- избранное (иконка через CSS) -->
+          <button class="trip-fav" aria-label="Add to favorites"></button>
+
+          <!-- страна -->
+          <div class="trip-top">
+            <span class="flag">
+              <img src="https://flagcdn.com/24x18/{{ t.country.iso2|lower }}.png" width="24" height="18" alt="">
+              {{ t.country.name|upper }}
+            </span>
+          </div>
+
+          <!-- название -->
+          <h3 class="trip-name">{{ t.title_full }}</h3>
+
+          <!-- мета: дата строкой + под ней аватарки (заглушки) -->
+          <div class="trip-meta">
+            <div class="meta-col">
+              <div class="cal">
+                <i class="cal-ic" aria-hidden="true"></i>
+                <span class="date">{{ t.date_range_str }}</span>
+              </div>
+              <div class="faces">
+                <img src="https://i.pravatar.cc/48?img=12" alt="">
+                <img src="https://i.pravatar.cc/48?img=32" alt="">
+                <img src="https://i.pravatar.cc/48?img=18" alt="">
+                <img src="https://i.pravatar.cc/48?img=44" alt="">
+                <span class="more">+{{ t.booked }}</span>
+              </div>
+            </div>
+
+            <!-- стрелка перехода -->
+            <a href="{% url 'trip_detail' t.slug %}" class="trip-go" aria-label="Open trip"></a>
+          </div>
+        </article>
+        {% empty %}
+          <p style="opacity:.7">Пока нет опубликованных туров.</p>
+        {% endfor %}
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Нижнее меню -->
+  <nav class="bottom-nav" aria-label="Bottom navigation">
+    <div class="bottom-inner">
+      <a class="tab tab--home active_page" href="{% url 'index' %}"><span class="ico"></span></a>
+      <a class="tab tab--support" href="#"><span class="ico"></span></a>
+      <a class="tab tab--saved" href="#"><span class="ico"></span></a>
+      <a class="tab tab--profile" href="#"><span class="ico" id="navAvatar"></span></a>
+    </div>
+  </nav>
+
+  <!-- Desktop-only hint -->
+  <div id="deviceHint" class="device-hint" role="dialog" aria-modal="true" aria-labelledby="deviceHintTitle" aria-describedby="deviceHintText">
+    <div class="device-hint__card">
+      <div class="device-hint__icon" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="48" height="48">
+          <rect x="14" y="4" width="20" height="40" rx="4" fill="#111"/>
+          <rect x="16.5" y="8" width="15" height="28" rx="2" fill="#fff"/>
+          <circle cx="24" cy="39" r="2.5" fill="#fff"/>
+        </svg>
+      </div>
+      <h3 id="deviceHintTitle">Для лучшего взаимодействия зайдите на сайт с телефона</h3>
+      <p id="deviceHintText" class="device-hint__sub">Интерфейс оптимизирован под мобильные устройства.</p>
+      <button id="deviceHintContinue" class="device-hint__btn">Продолжить с моего устройства</button>
+    </div>
+  </div>
+
+  <script src="{% static 'js/script.js' %}"></script>
+</body>
+</html>

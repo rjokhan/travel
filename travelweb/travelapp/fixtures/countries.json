@@ -1,0 +1,7 @@
+[
+  {"model": "travelapp.country", "pk": 1, "fields": {"name": "Uzbekistan", "iso2": "UZ"}},
+  {"model": "travelapp.country", "pk": 2, "fields": {"name": "Russia", "iso2": "RU"}},
+  {"model": "travelapp.country", "pk": 3, "fields": {"name": "Kazakhstan", "iso2": "KZ"}},
+  {"model": "travelapp.country", "pk": 4, "fields": {"name": "United States", "iso2": "US"}},
+  {"model": "travelapp.country", "pk": 5, "fields": {"name": "France", "iso2": "FR"}}
+]

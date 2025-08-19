@@ -1,0 +1,388 @@
+html, body {
+  padding-top: 0 !important;
+  max-width: 100%;
+  overflow-x: hidden;          /* фоллбек */
+  position: relative;
+}
+
+
+/* ===== Tabs Card ===== */
+    .info-card{
+      margin-top:16px;
+      background:#fff !important;
+      color:#111;
+      border-radius:20px;
+      overflow:hidden;
+      border:1px solid rgba(0,0,0,.5) !important;
+    }
+    .info-tabs{
+      display:flex;
+      gap:8px;
+      padding:12px;
+      border-bottom:1px solid rgba(0,0,0,.1);
+      
+    }
+    .info-tab{
+      appearance:none;
+      border:none;
+      background:transparent;
+      padding:10px 14px;
+      border-radius:999px;
+      font-weight:700;
+      color:#666;
+      cursor:pointer;
+      white-space:nowrap;
+      flex: 1 1 0 !important;
+      min-width: max-content !important;
+    }
+    .info-tab[aria-selected="true"]{
+      color:#111;
+      background:rgba(0,0,0,.06);
+    }
+
+    .tabs-body{
+      position:relative;
+      padding:0 14px;
+      transition:height .28s ease;
+    }
+    .tab-panel{
+      padding:14px 0 18px;
+      line-height:1.5;
+      color:#333;
+    }
+    .tab-panel[hidden]{display:block; height:0; padding:0; overflow:hidden; visibility:hidden;}
+
+    .paybar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px;
+      border-top:1px solid rgba(0,0,0,.06);
+      background:#fff;
+    }
+    .pay-amount{
+      font-weight:900;
+      font-size:18px;
+      color:#111;
+    }
+    .pay-note{
+      display:block;
+      font-size:12px;
+      color:#888;
+      margin-top:2px;
+    }
+    .btn-book{
+      padding:12px 18px;
+      border-radius:999px;
+      background:#111;
+      color:#fff;
+      text-decoration:none;
+      font-weight:900;
+      box-shadow:0 10px 24px rgba(0,0,0,.18);
+      white-space:nowrap;
+    }
+
+    @media (prefers-color-scheme: dark){
+      .info-card{background:#f9f9fb;color:#111}
+      .paybar{background:#f9f9fb}
+    }
+
+
+
+.trip-page{
+  /* фон ВСЕГО экрана той же фоткой, что и хиро */
+  --hero-img: url("../img/kz_default.png");
+  position: relative;
+}
+
+/* ===== HERO ===== */
+.trip-hero{
+  position: relative;
+  height: min(74vh, 560px);
+  overflow: hidden;
+  background: var(--hero-img) center/cover no-repeat;
+}
+
+/* set from JS / data-bg */
+.trip-hero[data-bg]{}
+
+/* back + weather */
+.back-btn{
+  position:absolute; left:25px; top:22px;
+  width:70px; height:70px; border-radius:50%;
+  background: #fff url("../img/ic-back.png") center/25px 25px no-repeat;
+}
+.back-btn::after{
+  content:"";
+  position:absolute; inset:0;
+  background: #000000;                     /* заливаем цветом */
+  -webkit-mask: url("../img/ic-back.png") center/25px 25px no-repeat;
+          mask: url("../img/ic-back.png") center/25px 25px no-repeat;
+  pointer-events: none;
+}
+.hero-weather{
+  position:absolute; right:14px; top:14px;
+  padding:8px 12px;
+}
+
+#weatherTextTop{
+  color: #000000 !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+}
+#weatherText{
+  color: #000000 !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+}
+
+.hero-weather .icon{
+  background:#fff;
+  height: 70px !important;
+  width: 70px !important;
+  line-height: 70px !important;
+  font-size: 25px !important;
+  background-position: center;
+}
+
+/* bottom area over hero */
+.hero-bottom{
+  position:absolute; left:18px; right:18px; bottom:150px;
+  color:#fff;
+}
+.alt{
+  font-size:22px; opacity:.9; margin-bottom:6px;
+}
+.trip-short{
+  margin: 10px 0 20px 0;
+  font-size: clamp(35px,4.6vw,28px);
+  font-weight:700;
+  text-shadow:0 2px 14px rgba(0,0,0,.6);
+}
+
+/* faces (reuse из style.css, но без рамок усилим) */
+.hero-bottom .faces img{
+  width:50px; height:50px;
+  border:2px solid rgba(255,255,255,.85);
+  box-shadow:0 4px 10px rgba(0,0,0,.35);
+}
+.hero-bottom .faces .more{
+  width:50px; height:50px; font-size:16px;
+  background: rgb(255, 255, 255);
+  border:2px solid rgba(255,255,255,.85);
+  color:#000000;
+}
+
+/* ===== SHEET ===== */
+.trip-sheet{
+  position: relative;
+  margin-top: -36px;                 /* накрываем хиро */
+  background:#fff;
+  border-top-left-radius: 50px;
+  border-top-right-radius: 50px;
+  box-shadow: 0 -14px 40px rgba(0,0,0,.35);
+  padding: 18px 16px 0px 16px;
+}
+.trip-sheet:before{
+  content:"";
+  position:absolute;
+  top: -50px;
+  height:100%; background:#fff;
+  border-radius: 50%;
+  width: 200%;
+  left: -50%;
+  z-index: -1;
+}
+
+.fav-fab{
+  position:absolute;
+  right: 30px;
+  top: -80px;
+  width:90px; height:90px; border-radius:50%;
+  border:0;
+  background:#fff url("../img/ic-red-heart.png") center/32px 32px no-repeat;
+  box-shadow:0 1px 20px rgba(0,0,0,.26), inset 0 1px 0 rgba(0,0,0,.04);
+  cursor:pointer;
+}
+.fav-fab.is-active{
+  background: url("../img/ic-red-heart-filled.png") center/22px 22px no-repeat;
+}
+
+.sheet-head{
+  display:flex; flex-direction:column; gap:10px;
+}
+.country{
+  display:flex; align-items:center; gap:8px;
+  text-align: center;
+  justify-content: center;
+  font-weight:800; font-size:20px; letter-spacing:.35px; color:#000000;
+  top: -10px !important;
+  position: absolute;
+  left: 50%;
+  right: 50%;
+}
+.trip-full{
+  font-size: clamp(35px,4.8vw,28px);
+  line-height:1.1; color:#111; font-weight:900 !important;
+  margin-top: 10px;
+  text-align: center;
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 0;
+}
+
+.chips{
+  margin-top: 10px;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;            /* базовый отступ между пилюлями */
+  width: 100%;
+  flex-wrap: nowrap;    /* держим в одну строку */
+}
+
+.chip{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+gap: 12px !important;  
+  /* ключ: равные доли, но не меньше контента */
+  flex: 1 1 0;
+  min-width: max-content;
+
+  padding: 10px 14px;
+  height: 55px;
+  border-radius: 25px;
+  background: #e6e6e6;
+  color: #111;
+  font-weight: 700;
+  font-size: 16px;
+  white-space: nowrap;  /* не переносить внутри */
+}
+
+.ic{ width:18px; height:18px; display:inline-block; background-size:contain; background-repeat:no-repeat; }
+.ic.cal   { background-image:url("../img/ic-calendar.png"); filter: brightness(0);}
+.ic.group { background-image:url("../img/ic-group.png"); }
+.ic.city  { background-image:url("../img/ic-city.png"); }
+
+/* map card */
+.map-card{
+  margin-top: 16px;
+  background:#0f2331; border-radius:22px; overflow:hidden;
+  box-shadow:0 12px 32px rgba(0,0,0,.22);
+}
+.map-card img{ display:block; width:100%; height:240px; object-fit:cover; }
+.map-meta{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 14px; background:#0f2331;
+}
+.price{ color:#fff; font-weight:900; font-size:18px; }
+.cta-pay{
+  padding:12px 16px; border-radius:999px; text-decoration:none;
+  background:#fff; color:#111; font-weight:900;
+  box-shadow:0 10px 24px rgba(0,0,0,.28);
+}
+
+/* немного воздуха внизу, чтобы не затиралось навбаром */
+.spacer{ height: 120px; }
+
+/* desktop: подправим размеры */
+@media (min-width: 1024px){
+  .trip-hero{ height: min(68vh, 620px); }
+  .map-card img{ height: 320px; }
+}
+
+/* Тёмный блок карты уже есть у тебя. Анимация линии: */
+.map-svg .route{
+  animation: dash-move 18s linear infinite;
+}
+@keyframes dash-move{
+  to{ stroke-dashoffset: -300; }
+}
+
+/* Если хочешь ещё темнее — можно так приглушить весь SVG */
+.map-card .map-svg{
+  border-radius: 18px;
+  display: block;
+}
+
+
+
+
+/* ====== SVG map ====== */
+.map-card{ margin-top:16px; background:#0f2331; border-radius:22px; overflow:hidden; box-shadow:0 12px 32px rgba(0,0,0,.22); }
+.map-card .map-svg{ display:block; width:100%; height:240px; background:#0f2331; }
+
+/* пунктирная дорога с анимацией */
+.map-svg .route {
+  stroke:#A7E3FF; stroke-width:4; fill:none;
+  stroke-dasharray:8 12; stroke-linecap:round; opacity:.95;
+  filter: drop-shadow(0 0 6px rgba(167,227,255,.55));
+  animation: dash 9s linear infinite;
+}
+@keyframes dash { to { stroke-dashoffset: -600; } }
+
+/* декоративные “изолинии” на фоне */
+.map-svg .contour { fill:none; stroke:rgba(255,255,255,.06); stroke-width:1.2 }
+
+/* точки маршрута */
+.map-svg .node {
+  stroke:#fff; stroke-width:4; r:10; fill:#0f2331;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,.35));
+}
+.map-svg .node--start { fill:#143a2a; }   /* зелёный — старт */
+.map-svg .node--mid   { fill:#1a2f40; }
+.map-svg .node--end   { fill:#40231a; }   /* тёплый — финиш */
+
+.map-svg .node-outer { r:18; fill:rgba(255,255,255,.12); stroke:rgba(255,255,255,.18); stroke-width:1 }
+
+/* подписи городов */
+.map-svg .label{
+  font: 700 16px/1.2 "Tw Cent Mt", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  fill:#fff; paint-order: stroke; stroke: rgba(0,0,0,.45); stroke-width:2px; stroke-linejoin:round;
+}
+.map-svg .badge{
+  font: 800 11px/1 "Tw Cent Mt", system-ui; text-transform: uppercase;
+  fill:#A7E3FF; opacity:.9;
+}
+
+
+/* контейнер навигации всегда у нижнего края */
+.bottom-nav{
+  position: fixed;
+  left: 0; right: 0;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 1000;                  /* поверх видео и контента */
+  display: grid;
+  place-items: center;
+  pointer-events: none;           /* кликается только внутренняя плитка */
+}
+
+/* стеклянная «плитка» навигации */
+.bottom-inner{
+  --glass-bg-1: #0f2331ce !important; /* тёмный фон */
+  --glass-bg-2: #0f2331ce !important;
+
+  width: min(640px, calc(100% - 32px));
+  padding: 10px 16px;
+  border-radius: 50px;
+  pointer-events: auto;
+  position: relative;
+
+  background: linear-gradient(180deg, var(--glass-bg-1), var(--glass-bg-2));
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 20px 36px rgba(0,0,0,.35),          /* внешняя тень */
+    inset 0 1px 0 rgba(0, 0, 0, 0.65),  /* верхний блик */
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18); /* нижний «край» */
+  backdrop-filter: blur(8px) brightness(1.05);
+  -webkit-backdrop-filter: blur(2px) brightness(1.05);
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+

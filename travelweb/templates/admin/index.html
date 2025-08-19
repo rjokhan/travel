@@ -1,0 +1,123 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls admin_list static log %}
+
+{# ===== Хлебные крошки / заголовок ===== #}
+{% block breadcrumbs %}
+  <div class="content-header">
+    <div class="container-fluid">
+      <h1 class="ac-title">{% trans "ПАНЕЛЬ АДМИНИСТРАТОРА" %}</h1>
+    </div>
+  </div>
+{% endblock %}
+
+{# ===== Основной контент ===== #}
+{% block content %}
+<div class="ac-container">
+
+  {# Ряд: Быстрые действия + Статистика #}
+  <div class="ac-grid">
+    <section class="ac-card">
+      <header class="ac-card__head">{% trans "Быстрые действия" %}</header>
+      <div class="ac-card__body">
+        <div class="ac-actions">
+          {% if perms.travelapp.add_trip %}
+            <a class="btn btn-primary" href="{% url 'admin:travelapp_trip_add' %}">➕ {% trans "Новый тур" %}</a>
+          {% endif %}
+          {% if perms.travelapp.view_trip %}
+            <a class="btn btn-outline-secondary" href="{% url 'admin:travelapp_trip_changelist' %}">📋 {% trans "Все туры" %}</a>
+          {% endif %}
+          {% if perms.travelapp.view_country %}
+            <a class="btn btn-outline-secondary" href="{% url 'admin:travelapp_country_changelist' %}">🌍 {% trans "Страны" %}</a>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <aside class="ac-card">
+      <header class="ac-card__head">{% trans "Статистика" %}</header>
+      <div class="ac-card__body">
+        <ul class="ac-stats">
+          <li>{% trans "Активных туров:" %} — <!-- TODO: можно подставить реальный счётчик --></li>
+          <li>{% trans "Последний вход:" %} {{ request.user.last_login|date:"d.m.Y H:i" }}</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  {# Ряд: Последние действия #}
+  <div class="ac-grid">
+    <section class="ac-card">
+      <header class="ac-card__head">{% trans "Последние действия" %}</header>
+      <div class="ac-card__body">
+        {% get_admin_log 8 as admin_log for_user user %}
+        {% if not admin_log %}
+          <div class="empty-state">{% trans "Недоступно" %}</div>
+        {% else %}
+          <ul class="ac-models">
+            {% for entry in admin_log %}
+              <li class="ac-model">
+                <span>
+                  {% if entry.is_deletion or not entry.get_admin_url %}
+                    <span class="ac-model__name">{{ entry.object_repr }}</span>
+                  {% else %}
+                    <a class="ac-model__name" href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                  {% endif %}
+                  <small style="opacity:.75">— {{ entry.content_type.name }}</small>
+                </span>
+                <div class="ac-model__tools">
+                  <span class="ac-chip">
+                    {% if entry.is_addition %}{% trans "Создание" %}
+                    {% elif entry.is_change %}{% trans "Изменение" %}
+                    {% elif entry.is_deletion %}{% trans "Удаление" %}
+                    {% endif %}
+                  </span>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  {# Ряд: Список приложений/моделей #}
+  <div class="ac-grid">
+    {% if app_list %}
+      {% for app in app_list %}
+        <section class="ac-card">
+          <header class="ac-card__head">{{ app.name }}</header>
+          <div class="ac-card__body">
+            <ul class="ac-models">
+              {% for model in app.models %}
+                <li class="ac-model">
+                  {% if model.admin_url %}
+                    <a class="ac-model__name" href="{{ model.admin_url }}">{{ model.name }}</a>
+                  {% else %}
+                    <span class="ac-model__name">{{ model.name }}</span>
+                  {% endif %}
+                  <div class="ac-model__tools">
+                    {% if model.add_url %}
+                      <a href="{{ model.add_url }}" class="btn btn-success btn-sm">{% trans "Добавить" %}</a>
+                    {% endif %}
+                    {% if model.admin_url %}
+                      <a href="{{ model.admin_url }}" class="btn btn-info btn-sm">{% trans "Изменить" %}</a>
+                    {% endif %}
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </section>
+      {% endfor %}
+    {% else %}
+      <section class="ac-card">
+        <header class="ac-card__head">{% trans "Приложения" %}</header>
+        <div class="ac-card__body">
+          <div class="empty-state">{% trans "Нет доступных приложений или прав." %}</div>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
