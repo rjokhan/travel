@@ -1,0 +1,45 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.so
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+
+# === Environments ===
+env/
+venv/
+ENV/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# === IDE / Editors ===
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Django ===
+*.log
+*.pot
+*.pyc
+db.sqlite3
+db.sqlite3-journal
+
+# === Media / Static ===
+media/
+staticfiles/
+
+# === Secrets ===
+.env
+.env.*
