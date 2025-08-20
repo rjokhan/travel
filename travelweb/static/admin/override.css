@@ -1,10 +1,12 @@
 /* ======================================================
-   A CLUB TRAVEL — Jazzmin Override (совершенный, fixed)
+   A CLUB TRAVEL — Jazzmin Override (фиксированная версия)
    Работает поверх AdminLTE 3 (Jazzmin)
    ====================================================== */
 
 /* ---------- Тема / переменные ---------- */
 :root{
+  color-scheme: dark;
+
   --brand-accent: #be0036;
   --brand-accent-600:#a3002e;
   --brand-accent-700:#8e0028;
@@ -46,11 +48,6 @@ body{
   background: var(--bg-800)!important;
   border-bottom: 1px solid var(--card-border);
 }
-
-.ac-title{
-
-}
-/* отступ между полем и кнопкой-лупой + чуть округлим */
 .main-header .input-group{ align-items: center; }
 .main-header .input-group-append .btn{
   margin-left: 8px;
@@ -58,41 +55,37 @@ body{
 }
 .main-header .form-control{ border-radius: var(--radius-sm); }
 
-.content-wrapper{ background: transparent; } /* фон берём у body */
-
+.content-wrapper{ background: transparent; }
 .content-wrapper .content{ padding: 24px 16px; }
 
-/* Центровка контейнеров по ширине */
 .content-wrapper .content > .container-fluid{
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
 }
 
-/* Если используешь свою обёртку .ac-container — тоже центрируем */
 .ac-container{
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 8px 24px;
 }
 
-/* ---------- Сетка дашборда (две колонки по центру) ---------- */
+/* ---------- Сетка дашборда ---------- */
 .ac-grid{
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 колонки */
-  gap: 15px;           
-  margin-top: 15px;      /* больше отступов и по вертикали, и по горизонтали */
-  align-items: stretch;      /* растягиваем элементы по высоте строки */
-  grid-auto-rows: 1fr;       /* строки одной высоты — «в пользу большего» */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+  align-items: stretch;
+  grid-auto-rows: 1fr;
 }
-.ac-grid > *{ height: 100%; } /* чтобы карточки принимали высоту строки */
+.ac-grid > *{ height: 100%; }
 
-/* На узких экранах — в одну колонку */
 @media (max-width: 992px){
   .ac-grid{ grid-template-columns: 1fr; }
 }
 
 /* ---------- Карточки ---------- */
-/* Поддерживаем и стандартные .card, и твои .ac-card */
 .card, .ac-card{
   background: var(--card-bg) !important;
   border: 1px solid var(--card-border) !important;
@@ -100,20 +93,15 @@ body{
   box-shadow: var(--shadow-1);
   transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
   overflow: hidden;
-
-  /* чтобы карточка растягивалась на высоту строки и
-     содержимое корректно занимало пространство */
   height: 100%;
   display: flex;
   flex-direction: column;
 }
-
 .card:hover, .ac-card:hover{
   transform: translateY(-6px);
   box-shadow: var(--shadow-2);
   background: var(--card-bg-hover);
 }
-
 .card-header, .ac-card__head{
   background: rgba(0,0,0,.25) !important;
   border-bottom: 1px solid var(--card-border) !important;
@@ -121,13 +109,9 @@ body{
   font-weight: 600;
   padding: 14px 18px;
 }
-
 .card-body, .ac-card__body{
   color: var(--text-100);
   padding: 16px 18px;
-
-  /* тянем тело на оставшееся пространство,
-     чтобы все карточки в строке были равновысокие */
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -139,31 +123,23 @@ body{
   border-radius: var(--radius-sm) !important;
   transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
 }
-
 .btn:hover{
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(0,0,0,.35);
 }
-
 .btn-primary{
   background: var(--brand-accent) !important;
   border-color: var(--brand-accent) !important;
 }
 .btn-primary:hover{ background: var(--brand-accent-600)!important; }
-
 .btn-outline-secondary{
   color: var(--text-100) !important;
   border-color: var(--card-border) !important;
   background: transparent !important;
 }
-.btn-outline-secondary:hover{
-  background: var(--card-bg-hover) !important;
-}
-
+.btn-outline-secondary:hover{ background: var(--card-bg-hover) !important; }
 .btn-success{ background:#2bbf6b!important; border-color:#2bbf6b!important; }
 .btn-info   { background:#2aa9d6!important; border-color:#2aa9d6!important; }
-
-/* Маленькие */
 .btn-sm{ padding: 4px 10px; }
 
 /* ---------- Список моделей / строки ---------- */
@@ -173,19 +149,17 @@ body{
   padding:10px 0; border-bottom:1px solid var(--card-border);
 }
 .ac-model:last-child{ border-bottom:0; }
-
 .ac-model__name{
   color: var(--text-100); text-decoration:none; font-weight:500;
   transition: color .2s ease;
 }
 .ac-model__name:hover{ color: var(--brand-accent); }
-
 .ac-chip{
   display:inline-block; padding:2px 10px; border-radius:999px;
   background: rgba(255,255,255,.15); color:#fff; font-size:12px;
 }
 
-/* ---------- Бейджики «Статус» из админки ---------- */
+/* ---------- Бейджики ---------- */
 .badge-status{
   display:inline-block; padding:4px 8px; border-radius:999px;
   font-size:12px; font-weight:600; letter-spacing:.2px;
@@ -194,25 +168,29 @@ body{
 .badge-status.warn{  background: rgba(241,196,15,.15); color:#f1c40f; }
 .badge-status.danger{background: rgba(231,76,60,.15);  color:#e74c3c; }
 
-/* ---------- Таблицы списков (changelist) ---------- */
+/* ---------- Таблицы ---------- */
 #changelist-form table{
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
-
 #changelist-form thead th{
   background: rgba(0,0,0,.35) !important;
   color: var(--text-100) !important;
   border-bottom: 1px solid var(--card-border);
 }
-
 #changelist-form tbody tr{ transition: background .2s ease; }
 #changelist-form tbody tr:hover{ background: rgba(255,255,255,.05); }
 
-/* ---------- Поиск/inputs ---------- */
-.form-control, .select2-selection{
+/* ---------- Формы ---------- */
+.form-control,
+.select2-selection,
+input[type=text],
+input[type=email],
+input[type=password],
+select,
+textarea{
   background: var(--bg-750) !important;
   border: 1px solid var(--card-border) !important;
   color: var(--text-100) !important;
@@ -220,19 +198,15 @@ body{
 }
 .form-control::placeholder{ color: var(--text-40); }
 
-/* ---------- Сайдбар Jazzmin/AdminLTE ---------- */
+/* ---------- Сайдбар ---------- */
 .main-sidebar{ background: var(--bg-800) !important; }
 .brand-link{
   background: var(--bg-800) !important;
   border-bottom: 1px solid var(--card-border) !important;
 }
 .sidebar{ padding-top: 8px; }
-
-/* пункт меню = одна строка: иконка + текст */
 .nav-sidebar .nav-link{
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: flex; align-items: center; gap: 10px;
   color: var(--text-100);
   border-radius: var(--radius-sm);
   margin: 3px 8px;
@@ -249,16 +223,13 @@ body{
 .nav-sidebar .nav-link.active .nav-icon{ color:#fff; }
 .sidebar .nav-header{ color: var(--text-60); padding: 12px 16px 6px; }
 
-/* ---------- Хлебные крошки/заголовок страницы ---------- */
+/* ---------- Заголовки/крошки ---------- */
 .content-header{
   border-bottom: 1px solid var(--card-border);
   margin: 0 auto;
 }
 .content-header .container-fluid{
   width: 100%;
-  margin: 0 auto;
-
-  /* центрируем заголовок */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -270,7 +241,6 @@ body{
   text-align: center;
   margin: 0 auto;
   width: 100%;
-  align-items: center;
 }
 
 /* ---------- Пустые состояния ---------- */
