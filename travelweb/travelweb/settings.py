@@ -16,6 +16,9 @@ DEBUG = False
 
 ALLOWED_HOSTS = [
     "travel.ayolclub.uz",
+    ".ayolclub.uz",   # разрешим любые поддомены, на всякий (www, travel1 и т.д.)
+    "localhost",
+    "127.0.0.1",
 ]
 
 # Для Django 4+: со схемой!
