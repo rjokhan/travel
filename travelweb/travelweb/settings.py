@@ -35,14 +35,14 @@ CSRF_COOKIE_SECURE = True
 
 # ========== ПРИЛОЖЕНИЯ ==========
 INSTALLED_APPS = [
-    "jazzmin",  # Jazzmin должен идти самым первым
+    "jazzmin",                 # всегда первым
+    "fontawesomefree",         # ← добавь это
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     "cities_light",
     "travelapp",
 ]
