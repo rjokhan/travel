@@ -1,17 +1,35 @@
+# travelweb/settings.py
 from pathlib import Path
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-3n4(6s!m(=h)odg%%+r2d1aayibs7o1qbud-%qtfgnhyd7)wjw'
+# ⚠️ Поменяй на секрет из .env в проде
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "django-insecure-3n4(6s!m(=h)odg%%+r2d1aayibs7o1qbud-%qtfgnhyd7)wjw"
+)
 
-DEBUG = True
-ALLOWED_HOSTS: list[str] = []
+# ── Прод режим ────────────────────────────────────────────────────────────────
+DEBUG = False
+ALLOWED_HOSTS: list[str] = ["travel.ayolclub.uz"]
 
-# ====================
-# Applications
-# ====================
+# Django 4.x требует схему в доверенных Origin
+CSRF_TRUSTED_ORIGINS = [
+    "https://travel.ayolclub.uz",
+    "https://*.ayolclub.uz",
+]
+
+# Мы за Nginx, говорим Django доверять X-Forwarded-Proto
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Более строгие куки в проде
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# ── Приложения ───────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
-    "jazzmin",                  # 👈 Jazzmin всегда первым
+    "jazzmin",  # 👈 Jazzmin всегда первым
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -19,16 +37,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
-    # База стран/городов из GeoNames
-    "cities_light",
-
-    # Ваше приложение
-    "travelapp",
+    "cities_light",      # база стран/городов
+    "travelapp",         # ваше приложение
 ]
 
-# ====================
-# Middleware
-# ====================
+# ── Middleware ───────────────────────────────────────────────────────────────
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -41,13 +54,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "travelweb.urls"
 
-# ====================
-# Templates
-# ====================
+# ── Templates ────────────────────────────────────────────────────────────────
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],  # ищем в /templates
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -61,9 +72,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "travelweb.wsgi.application"
 
-# ====================
-# Database
-# ====================
+# ── База данных ──────────────────────────────────────────────────────────────
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -71,9 +80,7 @@ DATABASES = {
     }
 }
 
-# ====================
-# Password validators
-# ====================
+# ── Валидаторы паролей ───────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -81,33 +88,34 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# ====================
-# Locale
-# ====================
+# ── Локаль ───────────────────────────────────────────────────────────────────
 LANGUAGE_CODE = "ru"
 TIME_ZONE = "Asia/Tashkent"
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# ====================
-# Static & Media
-# ====================
+# ── Static & Media ───────────────────────────────────────────────────────────
+# URL’ы остаются прежними, раздаёт Nginx
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]   # берём из папки /static
-STATIC_ROOT = BASE_DIR / "staticfiles"
-
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
 
-# ====================
-# Default
-# ====================
+# Откуда Django берёт файлы при collectstatic
+STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# Куда collectstatic складывает для Nginx (мы уже настроили на эти пути)
+STATIC_ROOT = Path("/var/www/travel_staticfiles")
+MEDIA_ROOT = Path("/var/www/travel_media")
+
+# ── Auth redirect’ы (если используешь) ──────────────────────────────────────
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "profile"
+LOGOUT_REDIRECT_URL = "login"
+
+# ── Прочее ───────────────────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ====================
-# Jazzmin settings (кастомизация админки)
-# ====================
+# ── Jazzmin ──────────────────────────────────────────────────────────────────
 JAZZMIN_SETTINGS = {
     "site_title": "A CLUB TRAVEL — Админка",
     "site_header": "A CLUB TRAVEL",
@@ -115,27 +123,23 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Добро пожаловать! Управление путешествиями и бронированиями",
     "copyright": "© A CLUB",
 
-    # Логотипы (должны лежать в static/admin/brand/)
+    # файлы должны лежать в static/admin/brand/
     "site_logo": "admin/brand/logo-white.svg",
     "login_logo": "admin/brand/logo-mark.svg",
     "login_logo_dark": "admin/brand/logo-white.svg",
 
-    # Поиск в шапке админки
     "search_model": ["travelapp.Trip", "travelapp.Country", "travelapp.City"],
     "user_avatar": None,
 
-    # Верхнее меню
     "topmenu_links": [
         {"name": "Панель", "url": "admin:index", "permissions": ["auth.view_user"]},
         {"app": "travelapp"},
     ],
 
-    # Сайдбар
     "show_sidebar": True,
     "navigation_expanded": True,
     "order_with_respect_to": ["travelapp", "auth"],
 
-    # Иконки моделей
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
@@ -146,11 +150,9 @@ JAZZMIN_SETTINGS = {
         "travelapp.trip": "fas fa-suitcase-rolling",
     },
 
-    # Кастомный CSS
     "custom_css": "admin/override.css",
     "custom_js": None,
 
-    # Тема
     "theme": "darkly",
     "show_ui_builder": False,
 }
@@ -170,16 +172,8 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_small_text": False,
 }
 
-# ====================
-# django-cities-light (страны/города)
-# ====================
-# Языки, для которых подгружаются переводы названий (если есть)
+# ── django-cities-light ──────────────────────────────────────────────────────
 CITIES_LIGHT_TRANSLATION_LANGUAGES = ["ru", "en"]
-
-# Источник городов. По умолчанию возьмём cities1000 (население >1k).
-# Если хочешь быстрее/меньше — замени на cities5000.zip.
 CITIES_LIGHT_CITY_SOURCES = [
     "http://download.geonames.org/export/dump/cities1000.zip",
 ]
-
-# (Опционально) если будет много данных и SQLite тормозит — переходи на PostgreSQL.
