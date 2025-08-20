@@ -1,17 +1,38 @@
+# travelweb/settings.py
 from pathlib import Path
+import os
 
+# ========== БАЗА ==========
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-3n4(6s!m(=h)odg%%+r2d1aayibs7o1qbud-%qtfgnhyd7)wjw'
+# Не хардкодь ключ в проде: можно положить в .env (переменная SECRET_KEY)
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "django-insecure-3n4(6s!m(=h)odg%%+r2d1aayibs7o1qbud-%qtfgnhyd7)wjw",
+)
 
-DEBUG = True
-ALLOWED_HOSTS: list[str] = []
+# Прод
+DEBUG = False
 
-# ====================
-# Applications
-# ====================
+ALLOWED_HOSTS = [
+    "travel.ayolclub.uz",
+]
+
+# Для Django 4+: со схемой!
+CSRF_TRUSTED_ORIGINS = [
+    "https://travel.ayolclub.uz",
+]
+
+# Если за Nginx/проксей — говорим Django, что клиент за HTTPS
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Безопасные cookies под HTTPS
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# ========== ПРИЛОЖЕНИЯ ==========
 INSTALLED_APPS = [
-    "jazzmin",                  # 👈 Jazzmin всегда первым
+    "jazzmin",  # Jazzmin должен идти самым первым
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -19,16 +40,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
-    # База стран/городов из GeoNames
     "cities_light",
-
-    # Ваше приложение
     "travelapp",
 ]
 
-# ====================
-# Middleware
-# ====================
+# ========== MIDDLEWARE ==========
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -41,13 +57,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "travelweb.urls"
 
-# ====================
-# Templates
-# ====================
+# ========== ШАБЛОНЫ ==========
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],  # ищем в /templates
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -61,9 +75,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "travelweb.wsgi.application"
 
-# ====================
-# Database
-# ====================
+# ========== БД ==========
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -71,9 +83,7 @@ DATABASES = {
     }
 }
 
-# ====================
-# Password validators
-# ====================
+# ========== ПАРОЛИ ==========
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -81,33 +91,33 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# ====================
-# Locale
-# ====================
+# ========== ЛОКАЛИ ==========
 LANGUAGE_CODE = "ru"
 TIME_ZONE = "Asia/Tashkent"
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 
-# ====================
-# Static & Media
-# ====================
+# ========== СТАТИКА/МЕДИА ==========
+# URL’ы
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]   # берём из папки /static
-STATIC_ROOT = BASE_DIR / "staticfiles"
-
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
 
-# ====================
-# Default
-# ====================
+# Откуда collectstatic соберёт файлы (если есть папка static в проекте)
+STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# Куда collectstatic складывает итог (раздаёт Nginx)
+STATIC_ROOT = Path("/var/www/travel_staticfiles")
+MEDIA_ROOT = Path("/var/www/travel_media")
+
+# ========== АВТО-ИД ==========
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ====================
-# Jazzmin settings (кастомизация админки)
-# ====================
+# ========== LOGIN FLOW ==========
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "profile"
+LOGOUT_REDIRECT_URL = "login"
+
+# ========== JAZZMIN ==========
 JAZZMIN_SETTINGS = {
     "site_title": "A CLUB TRAVEL — Админка",
     "site_header": "A CLUB TRAVEL",
@@ -115,27 +125,22 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Добро пожаловать! Управление путешествиями и бронированиями",
     "copyright": "© A CLUB",
 
-    # Логотипы (должны лежать в static/admin/brand/)
     "site_logo": "admin/brand/logo-white.svg",
     "login_logo": "admin/brand/logo-mark.svg",
     "login_logo_dark": "admin/brand/logo-white.svg",
 
-    # Поиск в шапке админки
     "search_model": ["travelapp.Trip", "travelapp.Country", "travelapp.City"],
     "user_avatar": None,
 
-    # Верхнее меню
     "topmenu_links": [
         {"name": "Панель", "url": "admin:index", "permissions": ["auth.view_user"]},
         {"app": "travelapp"},
     ],
 
-    # Сайдбар
     "show_sidebar": True,
     "navigation_expanded": True,
     "order_with_respect_to": ["travelapp", "auth"],
 
-    # Иконки моделей
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
@@ -146,11 +151,9 @@ JAZZMIN_SETTINGS = {
         "travelapp.trip": "fas fa-suitcase-rolling",
     },
 
-    # Кастомный CSS
     "custom_css": "admin/override.css",
     "custom_js": None,
 
-    # Тема
     "theme": "darkly",
     "show_ui_builder": False,
 }
@@ -170,16 +173,8 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_small_text": False,
 }
 
-# ====================
-# django-cities-light (страны/города)
-# ====================
-# Языки, для которых подгружаются переводы названий (если есть)
+# ========== CITIES-LIGHT ==========
 CITIES_LIGHT_TRANSLATION_LANGUAGES = ["ru", "en"]
-
-# Источник городов. По умолчанию возьмём cities1000 (население >1k).
-# Если хочешь быстрее/меньше — замени на cities5000.zip.
 CITIES_LIGHT_CITY_SOURCES = [
     "http://download.geonames.org/export/dump/cities1000.zip",
 ]
-
-# (Опционально) если будет много данных и SQLite тормозит — переходи на PostgreSQL.
