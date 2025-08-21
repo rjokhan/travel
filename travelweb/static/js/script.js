@@ -1,7 +1,7 @@
 // ================== DOM ==================
-const modal        = document.getElementById('createUserModal');
-const nameInput    = document.getElementById('name');
-const phoneInput   = document.getElementById('phone');
+const modal        = document.getElementById('createUserModal');  // legacy
+const nameInput    = document.getElementById('name');             // legacy
+const phoneInput   = document.getElementById('phone');            // legacy
 const hiEl         = document.getElementById('hi');
 
 const weatherText  = document.getElementById('weatherText');
@@ -20,10 +20,10 @@ const fab          = document.getElementById('editProfileFab');
 document.querySelectorAll('[data-close]')
   .forEach(b => b.addEventListener('click', closeModal));
 
-// save button может отсутствовать на части страниц
-const saveBtn = document.getElementById('saveUserBtn');
-if (saveBtn) saveBtn.addEventListener('click', saveUser);
-if (fab) fab.addEventListener('click', openModal);
+// отключаем старую модалку (используем новый authModal)
+const saveBtn = null; // document.getElementById('saveUserBtn');
+// if (saveBtn) saveBtn.addEventListener('click', saveUser);
+// if (fab) fab.addEventListener('click', openModal);
 
 function openModal(){
   if (!modal) return;
@@ -37,18 +37,8 @@ function closeModal(){
 
 
 // ================== USER INIT ==================
-(function initUser(){
-  try{
-    const saved = localStorage.getItem('aclub_user');
-    if (saved) {
-      const user = JSON.parse(saved);
-      if (user?.name && hiEl) hiEl.textContent = `Hi, ${user.name} 👋`;
-    } else {
-      // модалка есть только на index — на других страницах просто пропускаем
-      if (modal) openModal();
-    }
-  }catch{/* ignore */}
-})();
++// legacy приветствие отключено — статус берём из /auth/me/ в index.html inline-скрипте
+
 
 function saveUser(){
   if (!nameInput) return;

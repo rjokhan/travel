@@ -41,8 +41,8 @@ const hero = document.getElementById('tripHero');
 (async function initTripWeather(){
   try{
     const url = new URL(window.location.href);
-    const lat = Number(url.searchParams.get('lat')) || Number(hero?.dataset.lat) || 67.2804;
-    const lon = Number(url.searchParams.get('lon')) || Number(hero?.dataset.lon) || 14.4049;
+    const lat = Number(url.searchParams.get('lat')) || Number(hero?.dataset.lat) || 41.3111;
+    const lon = Number(url.searchParams.get('lon')) || Number(hero?.dataset.lon) || 69.2797;
     const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,is_day`);
     const j = await r.json();
     updateWeatherUI(j?.current?.temperature_2m ?? 15, j?.current?.weather_code ?? 2, j?.current?.is_day ?? 1);
@@ -52,7 +52,7 @@ const hero = document.getElementById('tripHero');
 })();
 
 /* ================== FAVORITE FAB + NAV AVATAR ================== */
-document.getElementById('favFab')?.addEventListener('click', e=>{
+document.querySelector('.fav-fab')?.addEventListener('click', e=>{
   e.currentTarget.classList.toggle('is-active');
 });
 

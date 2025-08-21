@@ -7,6 +7,7 @@ JSON‑эндпоинты для регистрации/входа с подтв
 
 import random
 import re
+import mimetypes
 from typing import Optional
 
 from django.http import JsonResponse, HttpRequest
@@ -14,6 +15,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.core.mail import send_mail
+from django.core.files.uploadedfile import UploadedFile
 from django.conf import settings
 from django.db.models import Q
 
@@ -86,7 +88,17 @@ def request_code(request: HttpRequest) -> JsonResponse:
     # письмо (в DEV улетит в консоль, если в settings включён console backend)
     subject = "Код подтверждения — A CLUB TRAVEL"
     body = f"Ваш код подтверждения: {code}\nКод действует 15 минут."
-    send_mail(subject, body, getattr(settings, "DEFAULT_FROM_EMAIL", None), [email], fail_silently=False)
+    try:
+        send_mail(
+            subject,
+            body,
+            getattr(settings, "DEFAULT_FROM_EMAIL", None),
+            [email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        # Не роняем API из‑за временной ошибки SMTP; пишем в лог
+        print("E-mail send failed:", e)
 
     return _ok({"message": "Код отправлен на почту."})
 
@@ -138,7 +150,10 @@ def verify_code(request: HttpRequest) -> JsonResponse:
     profile.save()
 
     # очистка черновика + сессии
-    del request.session[f"reg_pwd:{email}"]
+    try:
+        del request.session[f"reg_pwd:{email}"]
+    except KeyError:
+        pass
     rr.delete()
 
     # логиним
@@ -155,13 +170,18 @@ def upload_avatar(request: HttpRequest) -> JsonResponse:
     if not request.user.is_authenticated:
         return _err("Требуется аутентификация.", status=401)
 
-    file = request.FILES.get("avatar")
+    file: UploadedFile = request.FILES.get("avatar")  # type: ignore[assignment]
     if not file:
         return _err("Загрузите файл аватарки.")
 
     # простая валидация размера (<= 5 МБ)
     if file.size > 5 * 1024 * 1024:
         return _err("Файл слишком большой (до 5 МБ).")
+
+    # простая MIME‑валидация (помимо расширения)
+    guessed, _ = mimetypes.guess_type(file.name)
+    if guessed not in {"image/jpeg", "image/png", "image/webp"}:
+        return _err("Поддерживаются только JPG, PNG или WEBP.")
 
     profile: Profile = request.user.profile  # type: ignore[attr-defined]
     profile.avatar = file

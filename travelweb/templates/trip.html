@@ -12,33 +12,37 @@
 <body class="trip-page">
 
   <!-- HERO -->
-  <header id="tripHero"
-          class="trip-hero"
-          data-bg="{{ trip.hero_image.url }}"
-          style="--hero:url('{{ trip.hero_image.url }}');">
-    <a class="back-btn" href="{% url 'index' %}" aria-label="Назад"></a>
+<header id="tripHero"
+        class="trip-hero"
+        data-bg="{{ trip.hero_image.url }}"
+        data-lat="{{ trip.country.lat|default_if_none:'' }}"
+        data-lon="{{ trip.country.lon|default_if_none:'' }}"
+        style="--hero-img:url('{{ trip.hero_image.url }}');">
 
-    <div class="weather hero-weather" title="Local weather">
-      <div class="icon" aria-hidden="true">🌤️</div>
-      <div class="weatherTexts">
-        <span id="weatherTextTop">Weather</span>
-        <span id="weatherText">15°C</span>
-      </div>
-    </div>
+  <a class="back-btn" href="{% url 'index' %}" aria-label="Назад"></a>
 
-    <div class="hero-bottom">
-      <div class="alt">{{ trip.altitude_m }}m</div>
-      <h1 class="trip-short">{{ trip.title_short }}</h1>
-      <div class="faces">
-        <!-- Заглушки-аватары; при необходимости заменим на реальные участия -->
-        <img src="https://i.pravatar.cc/48?img=21" alt="">
-        <img src="https://i.pravatar.cc/48?img=22" alt="">
-        <img src="https://i.pravatar.cc/48?img=23" alt="">
-        <img src="https://i.pravatar.cc/48?img=24" alt="">
-        <span class="more">+{{ trip.booked }}</span>
-      </div>
+  <div class="weather hero-weather" title="Local weather">
+    <div class="icon" aria-hidden="true">🌤️</div>
+    <div class="weatherTexts">
+      <span id="weatherTextTop">Weather</span>
+      <span id="weatherText">15°C</span>
     </div>
-  </header>
+  </div>
+
+  <div class="hero-bottom">
+    <div class="alt">{{ trip.altitude_m }}m</div>
+    <h1 class="trip-short">{{ trip.title_short }}</h1>
+    <div class="faces">
+      <!-- Заглушки-аватары; при необходимости заменим на реальные участия -->
+      <img src="https://i.pravatar.cc/48?img=21" alt="">
+      <img src="https://i.pravatar.cc/48?img=22" alt="">
+      <img src="https://i.pravatar.cc/48?img=23" alt="">
+      <img src="https://i.pravatar.cc/48?img=24" alt="">
+      <span class="more">+{{ trip.booked }}</span>
+    </div>
+  </div>
+</header>
+
 
   <main class="trip-sheet">
     <button class="fav-fab" aria-label="Добавить в избранное"></button>

@@ -250,6 +250,27 @@
   const show = el => el.classList.remove('hidden');
   const hide = el => el.classList.add('hidden');
 
+  // ==== CSRF & fetch ====
+  function getCookie(name){
+    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return m ? m.pop() : '';
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  async function postForm(url, formData){
+    return fetch(url, {
+      method: 'POST',
+      body: formData,
+      credentials: 'same-origin',                // важно: тащит sessionid
+      headers: {'X-CSRFToken': csrftoken},       // важно: CSRF
+    }).then(r => r.json());
+  }
+  async function getJSON(url){
+    return fetch(url, {
+      credentials: 'same-origin'
+    }).then(r => r.json());
+  }
+
   const authModal = $('#authModal');
   const avatarModal = $('#avatarModal');
   const openBtn = $('#openAuthBtn');
@@ -269,62 +290,85 @@
     });
   });
 
-  // ЛОГИН
+  // ==== ЛОГИН ====
   on($('#formLogin'), 'submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(e.target);
-    const r = await fetch('/auth/login/', {method:'POST', body: fd});
-    const data = await r.json();
-    if(!data.successful){ alert(data.message||'Ошибка'); return; }
-    hide(authModal);
-    if(data.need_avatar) show(avatarModal); else location.reload();
+    try{
+      const data = await postForm('/auth/login/', fd);
+      if(!data.successful){ alert(data.message||'Ошибка'); return; }
+      hide(authModal);
+      if(data.need_avatar) show(avatarModal); else location.reload();
+    }catch(err){ alert('Сеть/сервер недоступны'); }
   });
 
-  // РЕГИСТРАЦИЯ — шаг 1: отправка кода
+  // ==== РЕГИСТРАЦИЯ — шаг 1: код ====
   const formRegister = $('#formRegister');
   const formVerify = $('#formVerify');
   let regEmail = '';
+
   on(formRegister, 'submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(e.target);
-    regEmail = String(fd.get('email')||'');
-    const r = await fetch('/auth/request-code/', {method:'POST', body: fd});
-    const data = await r.json();
-    if(!data.successful){ alert(data.message||'Ошибка'); return; }
-    formRegister.classList.add('hidden');
-    formVerify.classList.remove('hidden');
-    alert('Код отправлен на почту');
+
+    // базовая клиентская валидация
+    const email = String(fd.get('email')||'').trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      alert('Введите корректный e‑mail');
+      return;
+    }
+    regEmail = email;                   // сохраняем для шага verify (или можно hidden‑поле)
+    try{
+      const data = await postForm('/auth/request-code/', fd);
+      if(!data.successful){ alert(data.message||'Ошибка'); return; }
+      formRegister.classList.add('hidden');
+      formVerify.classList.remove('hidden');
+      alert('Код отправлен на почту');
+    }catch(err){ alert('Сеть/сервер недоступны'); }
   });
 
-  // РЕГИСТРАЦИЯ — шаг 2: ввод кода
+  // ==== РЕГИСТРАЦИЯ — шаг 2: ввод кода ====
   on(formVerify, 'submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(e.target);
     fd.append('email', regEmail);
-    const r = await fetch('/auth/verify/', {method:'POST', body: fd});
-    const data = await r.json();
-    if(!data.successful){ alert(data.message||'Ошибка'); return; }
-    hide(authModal);
-    show(avatarModal);
+    try{
+      const data = await postForm('/auth/verify/', fd);
+      if(!data.successful){ alert(data.message||'Ошибка'); return; }
+      hide(authModal);
+      show(avatarModal);
+    }catch(err){ alert('Сеть/сервер недоступны'); }
   });
 
-  // АВАТАР (обязателен)
+  // ==== АВАТАР ====
   on($('#formAvatar'), 'submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(e.target);
-    const r = await fetch('/auth/upload-avatar/', {method:'POST', body: fd});
-    const data = await r.json();
-    if(!data.successful){ alert(data.message||'Ошибка'); return; }
-    alert('Аватар сохранён');
-    hide(avatarModal);
-    location.reload();
+
+    // ограничим на клиенте размеры/тип (минимум)
+    const f = fd.get('avatar');
+    if(!(f && ['image/jpeg','image/png','image/webp'].includes(f.type))){
+      alert('Допустимы JPG/PNG/WebP');
+      return;
+    }
+    if(f.size > 5*1024*1024){ // 5MB
+      alert('Файл слишком большой (макс 5MB)');
+      return;
+    }
+
+    try{
+      const data = await postForm('/auth/upload-avatar/', fd);
+      if(!data.successful){ alert(data.message||'Ошибка'); return; }
+      alert('Аватар сохранён');
+      hide(avatarModal);
+      location.reload();
+    }catch(err){ alert('Сеть/сервер недоступны'); }
   });
 
-  // Если уже залогинен — заменим кнопку на аватар/имя
+  // ==== Заменяем кнопку на профиль, если уже залогинен ====
   (async ()=>{
     try{
-      const r = await fetch('/auth/me/');
-      const data = await r.json();
+      const data = await getJSON('/auth/me/');
       if(data.authenticated){
         if(data.avatar_url){
           $('#navAvatar').innerHTML =
@@ -337,8 +381,17 @@
       }
     }catch(e){}
   })();
+
+  // ==== Клавиатура/доступность модалки ====
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){
+      if(!authModal.classList.contains('hidden')) hide(authModal);
+      if(!avatarModal.classList.contains('hidden')) hide(avatarModal);
+    }
+  });
 })();
 </script>
+
 
 </body>
 </html>
