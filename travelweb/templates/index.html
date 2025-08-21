@@ -151,83 +151,9 @@
   </div>
 
 
-<!-- ===== AUTH MODAL (Login / Register) ===== -->
-  <div id="authModal" class="ac-modal hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-    <div class="ac-modal__inner">
-      <button class="ac-modal__close" data-ac-close aria-label="Закрыть">&times;</button>
-
-      <h3 id="authTitle" class="ac-title">A CLUB — вход и регистрация</h3>
-
-      <div class="ac-tabs" role="tablist">
-        <button class="ac-tab ac-tab--active" data-tab="login" role="tab" aria-selected="true">Войти</button>
-        <button class="ac-tab" data-tab="register" role="tab" aria-selected="false">Зарегистрироваться</button>
-      </div>
-
-      <!-- LOGIN -->
-      <div class="ac-pane" data-pane="login">
-        <form id="formLogin" class="ac-form" novalidate>
-          <label class="ac-label">
-            <span>Gmail</span>
-            <input type="email" name="email" placeholder="example@gmail.com" autocomplete="email" required />
-          </label>
-          <label class="ac-label">
-            <span>Пароль</span>
-            <input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required />
-          </label>
-          <button type="submit" class="btn btn-primary">Войти</button>
-        </form>
-      </div>
-
-      <!-- REGISTER (Step 1 → Step 2 → Step 3) -->
-      <div class="ac-pane hidden" data-pane="register">
-        <!-- STEP 1: данные -->
-        <form id="regStep1" class="ac-form" novalidate>
-          <label class="ac-label">
-            <span>Имя</span>
-            <input type="text" name="name" placeholder="Например, Жахонгир" autocomplete="name" required />
-          </label>
-          <label class="ac-label">
-            <span>Gmail</span>
-            <input type="email" name="email" placeholder="example@gmail.com" autocomplete="email" required />
-          </label>
-          <label class="ac-label">
-            <span>Телефон (необязательно)</span>
-            <input type="tel" name="phone" placeholder="+998 xx xxx xx xx" autocomplete="tel" />
-          </label>
-          <label class="ac-label">
-            <span>Пароль</span>
-            <input type="password" name="password" placeholder="Минимум 6 символов" autocomplete="new-password" minlength="6" required />
-          </label>
-          <button type="submit" class="btn btn-primary">Получить код</button>
-          <div class="ac-help">Мы отправим код подтверждения на указанную почту.</div>
-        </form>
-
-        <!-- STEP 2: код -->
-        <form id="regStep2" class="ac-form hidden" novalidate>
-          <label class="ac-label">
-            <span>Код из письма</span>
-            <input type="text" name="code" placeholder="123456" inputmode="numeric" autocomplete="one-time-code" required />
-          </label>
-          <button type="submit" class="btn btn-primary">Подтвердить</button>
-          <button type="button" class="btn btn-ghost" id="resendCodeBtn">Отправить код ещё раз</button>
-        </form>
-
-        <!-- STEP 3: аватар -->
-        <form id="regStep3" class="ac-form hidden" enctype="multipart/form-data" novalidate>
-          <label class="ac-label">
-            <span>Загрузите аватар (jpg/png/webp)</span>
-            <input type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp" required />
-          </label>
-          <button type="submit" class="btn btn-primary">Сохранить и войти</button>
-          <div class="ac-help">Аватар обязателен для завершения регистрации.</div>
-        </form>
-      </div>
-
-      <div id="authError" class="ac-error hidden" role="alert"></div>
-    </div>
-  </div>
 
 
+  
 
   <script src="{% static 'js/script.js' %}"></script>
 
