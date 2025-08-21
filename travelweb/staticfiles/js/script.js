@@ -60,7 +60,7 @@ function saveUser(){
   }
   const user = { name, phone };
   try{ localStorage.setItem('aclub_user', JSON.stringify(user)); }catch{}
-  if (hiEl) hiEl.textContent = `Hi, ${user.name} 👋`;
+  if (hiEl) hiEl.textContent = `Эээээйй, ${user.name} 👋`;
   closeModal();
 }
 
