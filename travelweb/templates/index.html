@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>A CLUB TRAVEL — Index</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css?v=2025-08-21-1' %}">
 </head>
 <body>
 
@@ -24,32 +24,6 @@
     </video>
   </div>
 
-  <!-- Попап: создание пользователя -->
-  <div id="createUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="createUserTitle">
-    <div class="modal-card">
-      <div class="modal-hd">
-        <h3 id="createUserTitle">Добро пожаловать в A CLUB TRAVEL</h3>
-        <button class="xbtn" data-close>&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          <div class="field">
-            <label for="name">Ваше имя</label>
-            <input id="name" type="text" placeholder="Например, Жахонгир" autocomplete="name">
-          </div>
-          <div class="field">
-            <label for="phone">Телефон (необязательно)</label>
-            <input id="phone" type="tel" placeholder="+998 xx xxx xx xx" autocomplete="tel">
-          </div>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <button class="btn btn-primary" id="saveUserBtn">Продолжить</button>
-          <button class="btn btn-ghost" data-close>Отмена</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Шапка -->
   <header class="topbar">
     <div class="container">
@@ -63,7 +37,7 @@
           <div class="weatherTexts">
             <span id="weatherTextTop">Weather</span>
             <button id="openAuthBtn" class="btn btn-primary" style="margin-left:12px;">
-            Войти / Регистрация
+              Войти / Регистрация
             </button>
             <span id="weatherText">15°C</span>
           </div>
@@ -178,220 +152,258 @@
     </div>
   </div>
 
-  <script src="{% static 'js/script.js' %}"></script>
+  <!-- ваш общий скрипт проекта -->
+  <script src="{% static 'js/script.js?v=2025-08-21-1' %}"></script>
 
   <!-- ===== AUTH MODAL ===== -->
-<div id="authModal" class="ac-modal hidden" role="dialog" aria-modal="true">
-  <div class="ac-modal__inner">
-    <button class="ac-modal__close" data-ac-close>&times;</button>
+  <div id="authModal" class="ac-modal hidden" role="dialog" aria-modal="true">
+    <div class="ac-modal__inner">
+      <button class="ac-modal__close" data-ac-close>&times;</button>
 
-    <div class="ac-tabs">
-      <button class="ac-tab ac-tab--active" data-tab="login">Войти</button>
-      <button class="ac-tab" data-tab="register">Зарегистрироваться</button>
+      <div class="ac-tabs">
+        <button class="ac-tab ac-tab--active" data-tab="login">Войти</button>
+        <button class="ac-tab" data-tab="register">Зарегистрироваться</button>
+      </div>
+
+      <div class="ac-pane" data-pane="login">
+        <form id="formLogin" class="ac-form">
+          <input type="email" name="email" placeholder="E‑mail" required autocomplete="email" />
+          <input type="password" name="password" placeholder="Пароль" required autocomplete="current-password" />
+          <button type="submit" class="btn btn-primary">Войти</button>
+        </form>
+      </div>
+
+      <div class="ac-pane hidden" data-pane="register">
+        <form id="formRegister" class="ac-form">
+          <input type="text" name="name" placeholder="Имя" required autocomplete="name" />
+          <input type="email" name="email" placeholder="E‑mail" required autocomplete="email" />
+          <input type="password" name="password" placeholder="Пароль" required autocomplete="new-password" />
+          <button type="submit" class="btn btn-primary">Получить код</button>
+        </form>
+
+        <form id="formVerify" class="ac-form hidden">
+          <input type="hidden" name="email" />
+          <input type="text" name="code" placeholder="Код из письма" required inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+          <button type="submit" class="btn btn-primary">Подтвердить</button>
+        </form>
+      </div>
     </div>
+  </div>
 
-    <div class="ac-pane" data-pane="login">
-      <form id="formLogin" class="ac-form">
-        <input type="email" name="email" placeholder="Gmail" required />
-        <input type="password" name="password" placeholder="Пароль" required />
-        <button type="submit" class="btn btn-primary">Войти</button>
-      </form>
-    </div>
-
-    <div class="ac-pane hidden" data-pane="register">
-      <form id="formRegister" class="ac-form">
-        <input type="text" name="name" placeholder="Имя" required />
-        <input type="email" name="email" placeholder="Gmail" required />
-        <input type="password" name="password" placeholder="Пароль" required />
-        <button type="submit" class="btn btn-primary">Получить код</button>
-      </form>
-
-      <form id="formVerify" class="ac-form hidden">
-        <input type="text" name="code" placeholder="Код из письма" required />
-        <button type="submit" class="btn btn-primary">Подтвердить</button>
+  <!-- ===== AVATAR MODAL ===== -->
+  <div id="avatarModal" class="ac-modal hidden" role="dialog" aria-modal="true">
+    <div class="ac-modal__inner">
+      <button class="ac-modal__close" data-ac-close>&times;</button>
+      <h3 style="margin:0 0 10px;">Загрузите аватар</h3>
+      <form id="formAvatar" class="ac-form" enctype="multipart/form-data">
+        <input type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp" required />
+        <button type="submit" class="btn btn-primary">Сохранить</button>
       </form>
     </div>
   </div>
-</div>
 
-<!-- ===== AVATAR MODAL ===== -->
-<div id="avatarModal" class="ac-modal hidden" role="dialog" aria-modal="true">
-  <div class="ac-modal__inner">
-    <button class="ac-modal__close" data-ac-close>&times;</button>
-    <h3 style="margin:0 0 10px;">Загрузите аватар</h3>
-    <form id="formAvatar" class="ac-form" enctype="multipart/form-data">
-      <input type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp" required />
-      <button type="submit" class="btn btn-primary">Сохранить</button>
-    </form>
-  </div>
-</div>
-
-
-<style>
-.ac-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999}
-.ac-modal.hidden{display:none}
-.ac-modal__inner{position:relative;background:#202530;border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 16px 36px rgba(0,0,0,.45);padding:18px;min-width:320px;max-width:420px;width:92%;color:#fff}
-.ac-modal__close{position:absolute;right:10px;top:10px;background:transparent;border:none;color:#fff;font-size:22px;cursor:pointer}
-.ac-tabs{display:flex;gap:8px;margin-bottom:12px}
-.ac-tab{flex:1;border:1px solid rgba(255,255,255,.12);background:transparent;color:#fff;padding:8px;border-radius:10px;cursor:pointer}
-.ac-tab--active{background:#be0036;border-color:#be0036}
-.ac-pane.hidden{display:none}
-.ac-form{display:grid;gap:10px}
-.ac-form input[type="text"], .ac-form input[type="email"], .ac-form input[type="password"], .ac-form input[type="file"]{
-  padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#262b36;color:#fff
-}
-</style>
-
-
-<script>
-(function(){
-  const $ = s => document.querySelector(s);
-  const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
-  const show = el => el.classList.remove('hidden');
-  const hide = el => el.classList.add('hidden');
-
-  // ==== CSRF & fetch ====
-  function getCookie(name){
-    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-    return m ? m.pop() : '';
-  }
-  const csrftoken = getCookie('csrftoken');
-
-  async function postForm(url, formData){
-    return fetch(url, {
-      method: 'POST',
-      body: formData,
-      credentials: 'same-origin',                // важно: тащит sessionid
-      headers: {'X-CSRFToken': csrftoken},       // важно: CSRF
-    }).then(r => r.json());
-  }
-  async function getJSON(url){
-    return fetch(url, {
-      credentials: 'same-origin'
-    }).then(r => r.json());
-  }
-
-  const authModal = $('#authModal');
-  const avatarModal = $('#avatarModal');
-  const openBtn = $('#openAuthBtn');
-
-  // открыть/закрыть
-  on(openBtn, 'click', ()=> show(authModal));
-  authModal.querySelectorAll('[data-ac-close]').forEach(b=> b.onclick = ()=> hide(authModal));
-  avatarModal.querySelectorAll('[data-ac-close]').forEach(b=> b.onclick = ()=> hide(avatarModal));
-
-  // табы
-  authModal.querySelectorAll('.ac-tab').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      authModal.querySelectorAll('.ac-tab').forEach(b=>b.classList.remove('ac-tab--active'));
-      btn.classList.add('ac-tab--active');
-      const target = btn.dataset.tab;
-      authModal.querySelectorAll('.ac-pane').forEach(p => p.classList.toggle('hidden', p.dataset.pane!==target));
-    });
-  });
-
-  // ==== ЛОГИН ====
-  on($('#formLogin'), 'submit', async (e)=>{
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    try{
-      const data = await postForm('/auth/login/', fd);
-      if(!data.successful){ alert(data.message||'Ошибка'); return; }
-      hide(authModal);
-      if(data.need_avatar) show(avatarModal); else location.reload();
-    }catch(err){ alert('Сеть/сервер недоступны'); }
-  });
-
-  // ==== РЕГИСТРАЦИЯ — шаг 1: код ====
-  const formRegister = $('#formRegister');
-  const formVerify = $('#formVerify');
-  let regEmail = '';
-
-  on(formRegister, 'submit', async (e)=>{
-    e.preventDefault();
-    const fd = new FormData(e.target);
-
-    // базовая клиентская валидация
-    const email = String(fd.get('email')||'').trim();
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-      alert('Введите корректный e‑mail');
-      return;
+  <style>
+    .ac-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .ac-modal.hidden{display:none}
+    .ac-modal__inner{position:relative;background:#202530;border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 16px 36px rgba(0,0,0,.45);padding:18px;min-width:320px;max-width:420px;width:92%;color:#fff}
+    .ac-modal__close{position:absolute;right:10px;top:10px;background:transparent;border:none;color:#fff;font-size:22px;cursor:pointer}
+    .ac-tabs{display:flex;gap:8px;margin-bottom:12px}
+    .ac-tab{flex:1;border:1px solid rgba(255,255,255,.12);background:transparent;color:#fff;padding:8px;border-radius:10px;cursor:pointer}
+    .ac-tab--active{background:#be0036;border-color:#be0036}
+    .ac-pane.hidden{display:none}
+    .ac-form{display:grid;gap:10px}
+    .ac-form input[type="text"], .ac-form input[type="email"], .ac-form input[type="password"], .ac-form input[type="file"]{
+      padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#262b36;color:#fff
     }
-    regEmail = email;                   // сохраняем для шага verify (или можно hidden‑поле)
-    try{
-      const data = await postForm('/auth/request-code/', fd);
-      if(!data.successful){ alert(data.message||'Ошибка'); return; }
-      formRegister.classList.add('hidden');
-      formVerify.classList.remove('hidden');
-      alert('Код отправлен на почту');
-    }catch(err){ alert('Сеть/сервер недоступны'); }
-  });
+  </style>
 
-  // ==== РЕГИСТРАЦИЯ — шаг 2: ввод кода ====
-  on(formVerify, 'submit', async (e)=>{
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    fd.append('email', regEmail);
-    try{
-      const data = await postForm('/auth/verify/', fd);
-      if(!data.successful){ alert(data.message||'Ошибка'); return; }
-      hide(authModal);
-      show(avatarModal);
-    }catch(err){ alert('Сеть/сервер недоступны'); }
-  });
+  <!-- === AUTH / AVATAR MODALS (FINAL SCRIPT) === -->
+  <script>
+  (function(){
+    const $ = s => document.querySelector(s);
+    const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+    const show = el => el && el.classList.remove('hidden');
+    const hide = el => el && el.classList.add('hidden');
 
-  // ==== АВАТАР ====
-  on($('#formAvatar'), 'submit', async (e)=>{
-    e.preventDefault();
-    const fd = new FormData(e.target);
+    // 0) На всякий случай: если где-то остался createUserModal — прячем
+    const legacy = document.getElementById('createUserModal');
+    if (legacy) { legacy.remove(); }
 
-    // ограничим на клиенте размеры/тип (минимум)
-    const f = fd.get('avatar');
-    if(!(f && ['image/jpeg','image/png','image/webp'].includes(f.type))){
-      alert('Допустимы JPG/PNG/WebP');
-      return;
+    // CSRF helpers
+    function getCookie(name){
+      const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+      return m ? m.pop() : '';
     }
-    if(f.size > 5*1024*1024){ // 5MB
-      alert('Файл слишком большой (макс 5MB)');
-      return;
-    }
+    const csrftoken = getCookie('csrftoken');
 
-    try{
-      const data = await postForm('/auth/upload-avatar/', fd);
-      if(!data.successful){ alert(data.message||'Ошибка'); return; }
-      alert('Аватар сохранён');
-      hide(avatarModal);
-      location.reload();
-    }catch(err){ alert('Сеть/сервер недоступны'); }
-  });
-
-  // ==== Заменяем кнопку на профиль, если уже залогинен ====
-  (async ()=>{
-    try{
-      const data = await getJSON('/auth/me/');
-      if(data.authenticated){
-        if(data.avatar_url){
-          $('#navAvatar').innerHTML =
-            `<img src="${data.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
-          openBtn.outerHTML =
-            `<img src="${data.avatar_url}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`;
-        }else{
-          openBtn.textContent = data.name || data.email;
-        }
+    async function postForm(url, formData){
+      const resp = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+        headers: {'X-CSRFToken': csrftoken},
+      });
+      if (!resp.ok) {
+        let msg = `Ошибка ${resp.status}`;
+        try { const j = await resp.json(); if (j.message) msg = j.message; } catch(_){}
+        throw new Error(msg);
       }
-    }catch(e){}
-  })();
-
-  // ==== Клавиатура/доступность модалки ====
-  document.addEventListener('keydown', (e)=>{
-    if(e.key === 'Escape'){
-      if(!authModal.classList.contains('hidden')) hide(authModal);
-      if(!avatarModal.classList.contains('hidden')) hide(avatarModal);
+      return resp.json();
     }
-  });
-})();
-</script>
+    async function getJSON(url){
+      const resp = await fetch(url, { credentials: 'same-origin' });
+      return resp.json();
+    }
 
+    // Модалки и табы
+    const authModal = $('#authModal');
+    const avatarModal = $('#avatarModal');
+    const openBtn = $('#openAuthBtn');
 
+    on(openBtn, 'click', ()=> {
+      show(authModal);
+      setTimeout(()=> authModal.querySelector('input[autocomplete="email"]')?.focus(), 0);
+    });
+    authModal?.querySelectorAll('[data-ac-close]').forEach(b=> b.onclick = ()=> hide(authModal));
+    avatarModal?.querySelectorAll('[data-ac-close]').forEach(b=> b.onclick = ()=> hide(avatarModal));
+
+    authModal?.querySelectorAll('.ac-tab').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        authModal.querySelectorAll('.ac-tab').forEach(b=>b.classList.remove('ac-tab--active'));
+        btn.classList.add('ac-tab--active');
+        const target = btn.dataset.tab;
+        authModal.querySelectorAll('.ac-pane').forEach(p => p.classList.toggle('hidden', p.dataset.pane!==target));
+        const first = authModal.querySelector(`.ac-pane[data-pane="${target}"] input, .ac-pane[data-pane="${target}"] button`);
+        if (first) setTimeout(()=>first.focus(), 0);
+      });
+    });
+
+    // Формы
+    const formLogin = $('#formLogin');
+    const formRegister = $('#formRegister');
+    const formVerify = $('#formVerify');
+
+    function withPending(form, pending){
+      const btn = form?.querySelector('button[type="submit"]');
+      if (!btn) return;
+      if (pending){
+        btn.dataset._text = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Отправка…';
+      } else {
+        btn.disabled = false;
+        if (btn.dataset._text) btn.textContent = btn.dataset._text;
+      }
+    }
+
+    // ЛОГИН
+    on(formLogin, 'submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(formLogin);
+      try{
+        withPending(formLogin, true);
+        const data = await postForm('/auth/login/', fd);
+        if(!data.successful){ alert(data.message||'Ошибка'); return; }
+        hide(authModal);
+        if(data.need_avatar) show(avatarModal); else location.reload();
+      }catch(err){ alert(err.message || 'Сеть/сервер недоступны'); }
+      finally{ withPending(formLogin, false); }
+    });
+
+    // РЕГИСТРАЦИЯ — шаг 1
+    let regEmail = '';
+    on(formRegister, 'submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(formRegister);
+      const email = String(fd.get('email')||'').trim();
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+        alert('Введите корректный e‑mail');
+        return;
+      }
+      regEmail = email;
+      try{
+        withPending(formRegister, true);
+        const data = await postForm('/auth/request-code/', fd);
+        if(!data.successful){ alert(data.message||'Ошибка'); return; }
+        formRegister.classList.add('hidden');
+        formVerify.classList.remove('hidden');
+        formVerify.querySelector('input[name="email"]').value = regEmail;
+        alert('Код отправлен на почту');
+        setTimeout(()=> formVerify.querySelector('input[name="code"]')?.focus(), 0);
+      }catch(err){ alert(err.message || 'Сеть/сервер недоступны'); }
+      finally{ withPending(formRegister, false); }
+    });
+
+    // РЕГИСТРАЦИЯ — шаг 2
+    on(formVerify, 'submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(formVerify);
+      if (!fd.get('email')) fd.set('email', regEmail || '');
+      try{
+        withPending(formVerify, true);
+        const data = await postForm('/auth/verify/', fd);
+        if(!data.successful){ alert(data.message||'Ошибка'); return; }
+        hide(authModal);
+        show(avatarModal);
+      }catch(err){ alert(err.message || 'Сеть/сервер недоступны'); }
+      finally{ withPending(formVerify, false); }
+    });
+
+    // АВАТАР
+    const formAvatar = $('#formAvatar');
+    on(formAvatar, 'submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(formAvatar);
+      const file = fd.get('avatar');
+      if(!(file && ['image/jpeg','image/png','image/webp'].includes(file.type))){
+        alert('Допустимы JPG/PNG/WebP');
+        return;
+      }
+      if(file.size > 5*1024*1024){
+        alert('Файл слишком большой (макс 5MB)');
+        return;
+      }
+      try{
+        withPending(formAvatar, true);
+        const data = await postForm('/auth/upload-avatar/', fd);
+        if(!data.successful){ alert(data.message||'Ошибка'); return; }
+        alert('Аватар сохранён');
+        hide(avatarModal);
+        location.reload();
+      }catch(err){ alert(err.message || 'Сеть/сервер недоступны'); }
+      finally{ withPending(formAvatar, false); }
+    });
+
+    // Если уже залогинен — показать аватар/имя
+    (async ()=>{
+      try{
+        const data = await getJSON('/auth/me/');
+        if(data.authenticated){
+          if(data.avatar_url){
+            const navAva = $('#navAvatar');
+            if (navAva) {
+              navAva.innerHTML =
+                `<img src="${data.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
+            }
+            if (openBtn) {
+              openBtn.outerHTML =
+                `<img src="${data.avatar_url}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`;
+            }
+          }else if (openBtn){
+            openBtn.textContent = data.name || data.email || 'Профиль';
+          }
+        }
+      }catch(_){}
+    })();
+
+    // ESC закрывает модалки
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape'){
+        if(!authModal?.classList.contains('hidden')) hide(authModal);
+        if(!avatarModal?.classList.contains('hidden')) hide(avatarModal);
+      }
+    });
+  })();
+  </script>
 </body>
 </html>
