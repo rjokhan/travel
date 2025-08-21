@@ -67,7 +67,7 @@ function saveUser(){
 
 // ================== WEATHER ==================
 function wmoToEmoji(code, isDay){
-  const sun='☀️', moon='🌙', sunCloud='🌤️', cloud='☁️', fog='🌫️',
+  const sun='🍑', moon='🌙', sunCloud='🌤️', cloud='☁️', fog='🌫️',
         drizzle='🌦️', rain='🌧️', snow='❄️', thunder='⛈️';
   if (code === 0) return isDay ? sun : moon;
   if (code === 1 || code === 2) return sunCloud;
