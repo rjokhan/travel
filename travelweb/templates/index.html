@@ -62,6 +62,9 @@
           <div class="icon" aria-hidden="true"></div>
           <div class="weatherTexts">
             <span id="weatherTextTop">Weather</span>
+            <button id="openAuthBtn" class="btn btn-primary" style="margin-left:12px;">
+            Войти / Регистрация
+            </button>
             <span id="weatherText">15°C</span>
           </div>
         </div>
@@ -176,5 +179,166 @@
   </div>
 
   <script src="{% static 'js/script.js' %}"></script>
+
+  <!-- ===== AUTH MODAL ===== -->
+<div id="authModal" class="ac-modal hidden" role="dialog" aria-modal="true">
+  <div class="ac-modal__inner">
+    <button class="ac-modal__close" data-ac-close>&times;</button>
+
+    <div class="ac-tabs">
+      <button class="ac-tab ac-tab--active" data-tab="login">Войти</button>
+      <button class="ac-tab" data-tab="register">Зарегистрироваться</button>
+    </div>
+
+    <div class="ac-pane" data-pane="login">
+      <form id="formLogin" class="ac-form">
+        <input type="email" name="email" placeholder="Gmail" required />
+        <input type="password" name="password" placeholder="Пароль" required />
+        <button type="submit" class="btn btn-primary">Войти</button>
+      </form>
+    </div>
+
+    <div class="ac-pane hidden" data-pane="register">
+      <form id="formRegister" class="ac-form">
+        <input type="text" name="name" placeholder="Имя" required />
+        <input type="email" name="email" placeholder="Gmail" required />
+        <input type="password" name="password" placeholder="Пароль" required />
+        <button type="submit" class="btn btn-primary">Получить код</button>
+      </form>
+
+      <form id="formVerify" class="ac-form hidden">
+        <input type="text" name="code" placeholder="Код из письма" required />
+        <button type="submit" class="btn btn-primary">Подтвердить</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== AVATAR MODAL ===== -->
+<div id="avatarModal" class="ac-modal hidden" role="dialog" aria-modal="true">
+  <div class="ac-modal__inner">
+    <button class="ac-modal__close" data-ac-close>&times;</button>
+    <h3 style="margin:0 0 10px;">Загрузите аватар</h3>
+    <form id="formAvatar" class="ac-form" enctype="multipart/form-data">
+      <input type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp" required />
+      <button type="submit" class="btn btn-primary">Сохранить</button>
+    </form>
+  </div>
+</div>
+
+
+<style>
+.ac-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999}
+.ac-modal.hidden{display:none}
+.ac-modal__inner{position:relative;background:#202530;border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 16px 36px rgba(0,0,0,.45);padding:18px;min-width:320px;max-width:420px;width:92%;color:#fff}
+.ac-modal__close{position:absolute;right:10px;top:10px;background:transparent;border:none;color:#fff;font-size:22px;cursor:pointer}
+.ac-tabs{display:flex;gap:8px;margin-bottom:12px}
+.ac-tab{flex:1;border:1px solid rgba(255,255,255,.12);background:transparent;color:#fff;padding:8px;border-radius:10px;cursor:pointer}
+.ac-tab--active{background:#be0036;border-color:#be0036}
+.ac-pane.hidden{display:none}
+.ac-form{display:grid;gap:10px}
+.ac-form input[type="text"], .ac-form input[type="email"], .ac-form input[type="password"], .ac-form input[type="file"]{
+  padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#262b36;color:#fff
+}
+</style>
+
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+  const show = el => el.classList.remove('hidden');
+  const hide = el => el.classList.add('hidden');
+
+  const authModal = $('#authModal');
+  const avatarModal = $('#avatarModal');
+  const openBtn = $('#openAuthBtn');
+
+  // открыть/закрыть
+  on(openBtn, 'click', ()=> show(authModal));
+  authModal.querySelectorAll('[data-ac-close]').forEach(b=> b.onclick = ()=> hide(authModal));
+  avatarModal.querySelectorAll('[data-ac-close]').forEach(b=> b.onclick = ()=> hide(avatarModal));
+
+  // табы
+  authModal.querySelectorAll('.ac-tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      authModal.querySelectorAll('.ac-tab').forEach(b=>b.classList.remove('ac-tab--active'));
+      btn.classList.add('ac-tab--active');
+      const target = btn.dataset.tab;
+      authModal.querySelectorAll('.ac-pane').forEach(p => p.classList.toggle('hidden', p.dataset.pane!==target));
+    });
+  });
+
+  // ЛОГИН
+  on($('#formLogin'), 'submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const r = await fetch('/auth/login/', {method:'POST', body: fd});
+    const data = await r.json();
+    if(!data.successful){ alert(data.message||'Ошибка'); return; }
+    hide(authModal);
+    if(data.need_avatar) show(avatarModal); else location.reload();
+  });
+
+  // РЕГИСТРАЦИЯ — шаг 1: отправка кода
+  const formRegister = $('#formRegister');
+  const formVerify = $('#formVerify');
+  let regEmail = '';
+  on(formRegister, 'submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    regEmail = String(fd.get('email')||'');
+    const r = await fetch('/auth/request-code/', {method:'POST', body: fd});
+    const data = await r.json();
+    if(!data.successful){ alert(data.message||'Ошибка'); return; }
+    formRegister.classList.add('hidden');
+    formVerify.classList.remove('hidden');
+    alert('Код отправлен на почту');
+  });
+
+  // РЕГИСТРАЦИЯ — шаг 2: ввод кода
+  on(formVerify, 'submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    fd.append('email', regEmail);
+    const r = await fetch('/auth/verify/', {method:'POST', body: fd});
+    const data = await r.json();
+    if(!data.successful){ alert(data.message||'Ошибка'); return; }
+    hide(authModal);
+    show(avatarModal);
+  });
+
+  // АВАТАР (обязателен)
+  on($('#formAvatar'), 'submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const r = await fetch('/auth/upload-avatar/', {method:'POST', body: fd});
+    const data = await r.json();
+    if(!data.successful){ alert(data.message||'Ошибка'); return; }
+    alert('Аватар сохранён');
+    hide(avatarModal);
+    location.reload();
+  });
+
+  // Если уже залогинен — заменим кнопку на аватар/имя
+  (async ()=>{
+    try{
+      const r = await fetch('/auth/me/');
+      const data = await r.json();
+      if(data.authenticated){
+        if(data.avatar_url){
+          $('#navAvatar').innerHTML =
+            `<img src="${data.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
+          openBtn.outerHTML =
+            `<img src="${data.avatar_url}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`;
+        }else{
+          openBtn.textContent = data.name || data.email;
+        }
+      }
+    }catch(e){}
+  })();
+})();
+</script>
+
 </body>
 </html>
