@@ -7,6 +7,16 @@ from django.db.models.functions import Lower
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
+from django.contrib.auth import get_user_model
+from django.core.validators import FileExtensionValidator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from datetime import timedelta
+import uuid, hashlib
+
+User = get_user_model()
+
+
 
 
 class Country(models.Model):
@@ -63,6 +73,79 @@ def trip_hero_upload_to(instance: "Trip", filename: str) -> str:
     slug = instance.slug or "trip"
     y_m = instance.date_start.strftime("%Y/%m") if instance.date_start else "0000/00"
     return f"trips/hero/{slug}/{y_m}/{filename}"
+
+def avatar_upload_to(instance, filename: str) -> str:
+    """
+    Путь загрузки аватарки: avatars/<user_id>/<uuid>_filename
+    """
+    return f"avatars/{instance.user_id}/{uuid.uuid4().hex}_{filename}"
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    display_name = models.CharField("Имя для отображения", max_length=150, blank=True)
+    avatar = models.ImageField(
+        "Аватар",
+        upload_to=avatar_upload_to,
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp"])],
+    )
+    is_email_verified = models.BooleanField("E‑mail подтверждён", default=False)
+
+    class Meta:
+        verbose_name = "Профиль"
+        verbose_name_plural = "Профили"
+
+    def __str__(self) -> str:
+        return f"Profile({getattr(self.user, 'email', self.user.username)})"
+
+@receiver(post_save, sender=User)
+def create_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(
+            user=instance,
+            display_name=(getattr(instance, "first_name", "") or "").strip(),
+        )
+
+
+class RegistrationRequest(models.Model):
+    """
+    Временная заявка на регистрацию до ввода кода.
+    Пароль хранить здесь не будем — положим сырой пароль во временную сессию.
+    """
+    name = models.CharField("Имя", max_length=150)
+    email = models.EmailField("E‑mail", unique=True)
+    code_hash = models.CharField("Хэш кода", max_length=255)
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+    expires_at = models.DateTimeField("Истекает")
+
+    class Meta:
+        verbose_name = "Заявка на регистрацию"
+        verbose_name_plural = "Заявки на регистрацию"
+        indexes = [
+            models.Index(fields=("email",), name="idx_regreq_email"),
+            models.Index(fields=("expires_at",), name="idx_regreq_expires"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.email} (до {self.expires_at:%Y-%m-%d %H:%M})"
+
+    def is_expired(self) -> bool:
+        return timezone.now() > self.expires_at
+
+    @staticmethod
+    def make_hash(raw: str) -> str:
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    @classmethod
+    def create_with_code(cls, name: str, email: str, code_raw: str, lifetime_minutes: int = 15):
+        return cls.objects.create(
+            name=name,
+            email=email.lower().strip(),
+            code_hash=cls.make_hash(code_raw),
+            expires_at=timezone.now() + timedelta(minutes=lifetime_minutes),
+        )
+
 
 
 class Trip(models.Model):
@@ -135,6 +218,8 @@ class Trip(models.Model):
 
     created_at = models.DateTimeField("Создано", auto_now_add=True)
     updated_at = models.DateTimeField("Обновлено", auto_now=True)
+
+
 
     class Meta:
         verbose_name = "Путешествие"

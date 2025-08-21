@@ -1,9 +1,11 @@
-# travelapp/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.http import HttpResponse
+from .models import Country, Trip, Profile, RegistrationRequest
+
+
 
 from .models import Country, Trip
 
@@ -183,3 +185,23 @@ class TripAdmin(admin.ModelAdmin):
             dates = f"{t.date_start:%Y-%m-%d}–{t.date_end:%Y-%m-%d}" if t.date_start and t.date_end else ""
             w.writerow([t.title_full, t.country.name, dates, f"{t.price_usd}", t.seats_left, label])
         return resp
+
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "display_name", "is_email_verified", "avatar_thumb")
+    list_filter = ("is_email_verified",)
+    search_fields = ("user__email", "display_name")
+
+    def avatar_thumb(self, obj):
+        if obj.avatar:
+            return format_html('<img src="{}" width="40" style="border-radius:50%"/>', obj.avatar.url)
+        return "—"
+    avatar_thumb.short_description = "Аватар"
+
+
+@admin.register(RegistrationRequest)
+class RegistrationRequestAdmin(admin.ModelAdmin):
+    list_display = ("id", "email", "name", "created_at", "expires_at", "is_expired")
+    search_fields = ("email", "name")
+    ordering = ("-created_at",)

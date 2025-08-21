@@ -7,6 +7,7 @@ urlpatterns = [
     path("grappelli/", include("grappelli.urls")),  # <- подключаем Grappelli
     path("admin/", admin.site.urls),               # <- стандартная админка
     path("", include("travelapp.urls")),           # <- твое приложение
+    path("auth/", include("travelapp.auth_urls")), # новые эндпоинты
 ]
 
 if settings.DEBUG:
