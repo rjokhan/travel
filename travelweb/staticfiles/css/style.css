@@ -795,3 +795,27 @@ header, main, nav {
 }
 
 
+.ac-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .ac-modal.hidden{display:none}
+    .ac-modal__inner{position:relative;background:#202530;border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 16px 36px rgba(0,0,0,.45);padding:18px;min-width:320px;max-width:460px;width:92%;color:#fff}
+    .ac-modal__close{position:absolute;right:10px;top:10px;background:transparent;border:none;color:#fff;font-size:22px;cursor:pointer}
+    .ac-title{margin:0 0 10px;font-weight:800}
+    .ac-tabs{display:flex;gap:8px;margin-bottom:12px}
+    .ac-tab{flex:1;border:1px solid rgba(255,255,255,.12);background:transparent;color:#fff;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+    .ac-tab--active{background:#be0036;border-color:#be0036}
+    .ac-pane.hidden{display:none}
+    .ac-form{display:grid;gap:10px}
+    .ac-label{display:grid;gap:6px;font-size:13px}
+    .ac-form input[type="text"],
+    .ac-form input[type="email"],
+    .ac-form input[type="password"],
+    .ac-form input[type="tel"],
+    .ac-form input[type="file"]{
+      padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#262b36;color:#fff
+    }
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid transparent;cursor:pointer;font-weight:700}
+    .btn-primary{background:#be0036;color:#fff;border-color:#be0036}
+    .btn-ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.25)}
+    .ac-help{font-size:12px;opacity:.8}
+    .ac-error{margin-top:10px;background:#5a1327;border:1px solid #be0036;color:#fff;padding:10px;border-radius:10px}
+    .hidden{display:none}

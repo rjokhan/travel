@@ -298,3 +298,253 @@ if (v && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     });
   }catch{/* ignore */}
 })();
+
+
+
+(function(){
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+    const show = el => el && el.classList.remove('hidden');
+    const hide = el => el && el.classList.add('hidden');
+    const on  = (el, ev, fn) => el && el.addEventListener(ev, fn);
+
+    const authModal = $('#authModal');
+    const openBtn   = $('#openAuthBtn');
+    const errorBox  = $('#authError');
+
+    // Получение CSRF из cookie
+    function getCookie(name){
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if(parts.length === 2) return parts.pop().split(';').shift();
+    }
+    function csrfHeaders() {
+      const csrftoken = getCookie('csrftoken');
+      return csrftoken ? {'X-CSRFToken': csrftoken} : {};
+    }
+    function setError(msg){
+      if(!msg){ hide(errorBox); errorBox.textContent=''; return; }
+      errorBox.textContent = msg;
+      show(errorBox);
+    }
+
+    // Открытие/закрытие модалки
+    on(openBtn, 'click', ()=> {
+      resetForms();
+      show(authModal);
+    });
+    $$('#authModal [data-ac-close]').forEach(b=>on(b,'click',()=> hide(authModal)));
+
+    // Табы
+    $$('.ac-tab').forEach(btn=>{
+      on(btn,'click',()=>{
+        $$('.ac-tab').forEach(b=> b.classList.remove('ac-tab--active'));
+        btn.classList.add('ac-tab--active');
+        const target = btn.dataset.tab;
+        $$('.ac-pane').forEach(p=> p.classList.toggle('hidden', p.dataset.pane !== target));
+        setError('');
+      });
+    });
+
+    // ====== LOGIN ======
+    on($('#formLogin'),'submit', async (e)=>{
+      e.preventDefault();
+      setError('');
+      const fd = new FormData(e.target);
+      try{
+        const r = await fetch('/auth/login/', {
+          method:'POST',
+          headers: csrfHeaders(),
+          body: fd
+        });
+        const data = await r.json();
+        if(!data.successful){ setError(data.message || 'Ошибка входа'); return; }
+        hide(authModal);
+        await postLoginUIUpdate(data);
+      }catch(err){
+        setError('Сеть недоступна. Попробуйте ещё раз.');
+      }
+    });
+
+    // ====== REGISTER FLOW ======
+    const reg1 = $('#regStep1');   // имя, почта, телефон, пароль -> получить код
+    const reg2 = $('#regStep2');   // ввод кода
+    const reg3 = $('#regStep3');   // аватар
+
+    let regEmail = '';
+    let regPassword = '';
+    let regName = '';
+    let regPhone = '';
+
+    function resetForms(){
+      // Чистим все поля/ошибки и возвращаем первый шаг регистрации
+      $('#formLogin')?.reset();
+      reg1?.reset(); reg2?.reset(); reg3?.reset();
+      show(reg1); hide(reg2); hide(reg3);
+      setError('');
+    }
+
+    // Step 1 → запрос кода
+    on(reg1, 'submit', async (e)=>{
+      e.preventDefault();
+      setError('');
+      const fd = new FormData(reg1);
+      regName = String(fd.get('name')||'').trim();
+      regEmail = String(fd.get('email')||'').trim();
+      regPhone = String(fd.get('phone')||'').trim();
+      regPassword = String(fd.get('password')||'');
+      if(!regName || !regEmail || regPassword.length < 6){
+        setError('Проверьте корректность имени, почты и пароля (мин. 6 символов).');
+        return;
+      }
+      try{
+        const fdReq = new FormData();
+        fdReq.append('name', regName);
+        fdReq.append('email', regEmail);
+        if(regPhone) fdReq.append('phone', regPhone);
+        fdReq.append('password', regPassword);
+
+        const r = await fetch('/auth/request-code/', {
+          method:'POST',
+          headers: csrfHeaders(),
+          body: fdReq
+        });
+        const data = await r.json();
+        if(!data.successful){ setError(data.message || 'Не удалось отправить код'); return; }
+        hide(reg1); show(reg2);
+        alert('Код отправлен на почту');
+      }catch(err){
+        setError('Сеть недоступна. Попробуйте ещё раз.');
+      }
+    });
+
+    // Повторная отправка кода
+    on($('#resendCodeBtn'), 'click', async ()=>{
+      setError('');
+      if(!regEmail){ setError('Сначала заполните шаг 1.'); return; }
+      try{
+        const fd = new FormData();
+        fd.append('email', regEmail);
+        const r = await fetch('/auth/request-code/', {
+          method:'POST',
+          headers: csrfHeaders(),
+          body: fd
+        });
+        const data = await r.json();
+        if(!data.successful){ setError(data.message || 'Не удалось отправить код'); return; }
+        alert('Код повторно отправлен на почту');
+      }catch(err){
+        setError('Сеть недоступна. Попробуйте ещё раз.');
+      }
+    });
+
+    // Step 2 → верификация кода
+    on(reg2, 'submit', async (e)=>{
+      e.preventDefault();
+      setError('');
+      const fd = new FormData(reg2);
+      const code = String(fd.get('code')||'').trim();
+      if(!code){ setError('Введите код из письма.'); return; }
+      try{
+        const f = new FormData();
+        f.append('email', regEmail);
+        f.append('code', code);
+        const r = await fetch('/auth/verify/', {
+          method:'POST',
+          headers: csrfHeaders(),
+          body: f
+        });
+        const data = await r.json();
+        if(!data.successful){ setError(data.message || 'Код неверный или просрочен'); return; }
+        hide(reg2); show(reg3);
+      }catch(err){
+        setError('Сеть недоступна. Попробуйте ещё раз.');
+      }
+    });
+
+    // Step 3 → загрузка аватара и авто-вход
+    on(reg3, 'submit', async (e)=>{
+      e.preventDefault();
+      setError('');
+      const fd = new FormData(reg3);
+      if(!fd.get('avatar')){ setError('Пожалуйста, загрузите аватар.'); return; }
+      try{
+        const r = await fetch('/auth/upload-avatar/', {
+          method:'POST',
+          headers: csrfHeaders(),
+          body: fd
+        });
+        const data = await r.json();
+        if(!data.successful){ setError(data.message || 'Не удалось загрузить аватар'); return; }
+
+        // После аватара — сразу логиним по введённой ранее паре email+password
+        const loginForm = new FormData();
+        loginForm.append('email', regEmail);
+        loginForm.append('password', regPassword);
+        const r2 = await fetch('/auth/login/', {
+          method:'POST',
+          headers: csrfHeaders(),
+          body: loginForm
+        });
+        const loginData = await r2.json();
+        if(!loginData.successful){ setError(loginData.message || 'Ошибка авто-входа'); return; }
+
+        hide(authModal);
+        await postLoginUIUpdate(loginData);
+      }catch(err){
+        setError('Сеть недоступна. Попробуйте ещё раз.');
+      }
+    });
+
+    // Обновление UI после входа
+    async function postLoginUIUpdate(me){
+      try{
+        // Обновим шапку: аватар/имя
+        const resp = await fetch('/auth/me/');
+        const data = await resp.json();
+        if(data && data.authenticated){
+          const navAv = $('#navAvatar');
+          const hi = $('#hi');
+          if(data.name) hi.textContent = `Салом, ${data.name} 👋`;
+          if(data.avatar_url){
+            if(navAv) navAv.innerHTML = `<img src="${data.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
+            if(openBtn){
+              openBtn.outerHTML = `<img src="${data.avatar_url}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`;
+            }
+          }else if(openBtn){
+            openBtn.textContent = data.name || data.email || 'Профиль';
+          }
+        }
+        // Обновим страницу, если нужно подтянуть персональные данные
+        // location.reload(); // при желании раскомментируйте
+      }catch(_){}
+    }
+
+    // Авто-запрос /auth/me/ для состояния
+    (async ()=>{
+      try{
+        const r = await fetch('/auth/me/');
+        const data = await r.json();
+        if(data && data.authenticated){
+          const hi = $('#hi');
+          if(data.name) hi.textContent = `Салом, ${data.name} 👋`;
+          if(data.avatar_url){
+            $('#navAvatar').innerHTML =
+              `<img src="${data.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
+            if(openBtn){
+              openBtn.outerHTML =
+                `<img src="${data.avatar_url}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`;
+            }
+          }else if(openBtn){
+            openBtn.textContent = data.name || data.email || 'Профиль';
+          }
+        }
+      }catch(_){}
+    })();
+
+    // Избежать "старых" автозаполнений/попапов локально (если ранее что-то сохраняли)
+    // Ничего не храним в localStorage для auth — всё на сессиях/куках.
+    try{
+      ['aclub_user','aclub_avatar'].forEach(k=> localStorage.removeItem(k));
+    }catch(_){}
+  })();
