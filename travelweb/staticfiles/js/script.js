@@ -42,7 +42,7 @@ function closeModal(){
     const saved = localStorage.getItem('aclub_user');
     if (saved) {
       const user = JSON.parse(saved);
-      if (user?.name && hiEl) hiEl.textContent = `Hi, ${user.name} 👋`;
+      if (user?.name && hiEl) hiEl.textContent = `Эээээйй, ${user.name} 👋`;
     } else {
       // модалка есть только на index — на других страницах просто пропускаем
       if (modal) openModal();
