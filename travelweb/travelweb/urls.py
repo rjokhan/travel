@@ -21,7 +21,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("auth/", include("accounts.urls")),
     path("", include("travelapp.urls")),
-    path("df261d9c024af55022f04b95a82e5e12.txt", mailjet_probe),
 ]
 
 def mailjet_probe(_):
