@@ -1,8 +1,12 @@
 from django.contrib import admin
-from .models import EmailSignupCode
+from .models import EmailCode, Profile
 
-@admin.register(EmailSignupCode)
-class EmailSignupCodeAdmin(admin.ModelAdmin):
-    list_display = ("email", "code", "created_at", "used", "attempts")
+@admin.register(EmailCode)
+class EmailCodeAdmin(admin.ModelAdmin):
+    list_display = ("email", "purpose", "code", "used", "expires_at", "created_at")
+    list_filter = ("purpose", "used")
     search_fields = ("email", "code")
-    list_filter = ("used", "created_at")
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ("user", "avatar")

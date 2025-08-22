@@ -1,23 +1,48 @@
+from django.conf import settings
+from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 
-class EmailSignupCode(models.Model):
+
+class EmailCode(models.Model):
+    PURPOSES = (
+        ("signup", "Sign up"),
+        ("reset", "Password reset"),
+    )
     email = models.EmailField(db_index=True)
-    name = models.CharField(max_length=150, blank=True)
-    # ВНИМАНИЕ: для простоты храним пароль временно в открытом виде и
-    # удаляем запись после верификации. В проде лучше шифровать.
-    raw_password = models.CharField(max_length=256)
     code = models.CharField(max_length=6)
+    purpose = models.CharField(max_length=16, choices=PURPOSES, default="signup")
+    # сохраняем временные данные регистрации: имя и захешированный пароль
+    extra = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
     used = models.BooleanField(default=False)
-    attempts = models.PositiveIntegerField(default=0)
 
-    class Meta:
-        indexes = [models.Index(fields=["email", "created_at"])]
+    @classmethod
+    def create_signup(cls, email, code, name, password_hash):
+        return cls.objects.create(
+            email=email,
+            code=code,
+            purpose="signup",
+            extra={"name": name, "password_hash": password_hash},
+            expires_at=timezone.now() + timedelta(minutes=15),
+        )
 
-    def is_expired(self, minutes=15):
-        return self.created_at < timezone.now() - timedelta(minutes=minutes)
+    def is_valid(self) -> bool:
+        return (not self.used) and timezone.now() <= self.expires_at
 
     def __str__(self):
-        return f"{self.email} [{self.code}] {self.created_at:%Y-%m-%d %H:%M}"
+        return f"{self.email} {self.purpose} {self.code}"
+
+
+def user_avatar_path(instance, filename):
+    return f"avatars/user_{instance.user_id}/{filename}"
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    avatar = models.ImageField(upload_to=user_avatar_path, blank=True, null=True)
+
+    def __str__(self):
+        return f"Profile<{self.user_id}>"
