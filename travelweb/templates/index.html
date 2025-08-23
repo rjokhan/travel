@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2025-08-21-1">
 </head>
 <body>
-  <!-- невидимая форма, чтобы гарантированно проставить csrftoken в DOM (доп. к ensure_csrf_cookie) -->
+  <!-- скрытая форма — гарантируем csrftoken в DOM -->
   <form style="display:none">{% csrf_token %}</form>
 
   <!-- КРУГЛОЕ ФОНОВОЕ ВИДЕО -->
@@ -144,82 +144,32 @@
     </div>
   </div>
 
-  <!-- ===== AUTH WIZARD (шаги) ===== -->
-  <div id="authWizard" class="ac-modal hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+  <!-- ===== AUTH: TELEGRAM ONLY ===== -->
+  <div id="authTgModal" class="ac-modal hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="ac-modal__inner">
       <button class="ac-modal__close" data-close>&times;</button>
 
-      <!-- stepper -->
-      <div class="ac-steps">
-        <span data-step-dot="choose" class="active">1</span>
-        <span data-step-dot="form">2</span>
-        <span data-step-dot="verify">3</span>
+      <h3 id="authTitle" class="ac-title">Войдите через Telegram</h3>
+      <p class="ac-sub">Нажмите кнопку ниже и подтвердите вход в Telegram.</p>
+
+      <div class="ac-tg">
+        <!-- TELEGRAM LOGIN WIDGET -->
+        <script async src="https://telegram.org/js/telegram-widget.js?22"
+                data-telegram-login="{{ TELEGRAM_BOT_NAME|default:'YOUR_BOT_NAME' }}"
+                data-size="large"
+                data-userpic="false"
+                data-auth-url="/auth/telegram/callback/?next={{ request.path }}"
+                data-request-access="write"></script>
       </div>
 
-      <!-- STEP: CHOOSE -->
-      <section class="ac-step" data-step="choose">
-        <h3 id="authTitle" class="ac-title">Добро пожаловать</h3>
-        <p class="ac-sub">Выберите способ входа:</p>
+      <div class="ac-or"><span>если кнопка не работает</span></div>
+      <div class="ac-actions">
+        <a class="btn btn-outline"
+           href="https://t.me/{{ TELEGRAM_BOT_NAME|default:'YOUR_BOT_NAME' }}?start=login"
+           target="_blank" rel="noopener">Открыть бота в Telegram</a>
+      </div>
 
-        <div class="ac-actions">
-          <button id="goLogin" class="btn btn-primary">Войти по e-mail</button>
-          <button id="goRegister" class="btn btn-outline">Зарегистрироваться</button>
-        </div>
-
-        {% if TELEGRAM_BOT_NAME %}
-        <div class="ac-or"><span>или</span></div>
-        <div class="ac-tg">
-          <script async src="https://telegram.org/js/telegram-widget.js?22"
-                  data-telegram-login="{{ TELEGRAM_BOT_NAME }}"
-                  data-size="large"
-                  data-userpic="false"
-                  data-auth-url="/auth/telegram/callback/"
-                  data-request-access="write"></script>
-        </div>
-        {% endif %}
-      </section>
-
-      <!-- STEP: FORM (LOGIN / REGISTER) -->
-      <section class="ac-step hidden" data-step="form">
-        <h3 class="ac-title" data-mode-title="login">Вход по e-mail</h3>
-        <h3 class="ac-title hidden" data-mode-title="register">Регистрация</h3>
-
-        <!-- LOGIN FORM -->
-        <form id="formLogin" class="ac-form" autocomplete="on" data-mode="login">
-          <input type="email" name="email" placeholder="E-mail" required autocomplete="email" />
-          <input type="password" name="password" placeholder="Пароль" required autocomplete="current-password" />
-          <div class="ac-row">
-            <button type="button" class="btn btn-ghost" data-back>Назад</button>
-            <button type="submit" class="btn btn-primary">Войти</button>
-          </div>
-        </form>
-
-        <!-- REGISTER FORM -->
-        <form id="formRegister" class="ac-form hidden" autocomplete="on" data-mode="register">
-          <input type="text" name="name" placeholder="Имя" required autocomplete="name" />
-          <input type="email" name="email" placeholder="E-mail" required autocomplete="email" />
-          <input type="password" name="password" placeholder="Пароль" required autocomplete="new-password" />
-          <div class="ac-row">
-            <button type="button" class="btn btn-ghost" data-back>Назад</button>
-            <button type="submit" class="btn btn-primary">Получить код</button>
-          </div>
-          <p class="ac-hint">Мы отправим код подтверждения на указанный e-mail.</p>
-        </form>
-      </section>
-
-      <!-- STEP: VERIFY CODE -->
-      <section class="ac-step hidden" data-step="verify">
-        <h3 class="ac-title">Подтвердите e-mail</h3>
-        <p class="ac-sub">Введите 6-значный код из письма</p>
-        <form id="formVerify" class="ac-form">
-          <input type="hidden" name="email" />
-          <input type="text" name="code" placeholder="Код из письма" required inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
-          <div class="ac-row">
-            <button type="button" class="btn btn-ghost" data-back>Назад</button>
-            <button type="submit" class="btn btn-primary">Подтвердить</button>
-          </div>
-        </form>
-      </section>
+      <p class="ac-hint">После подтверждения вы вернётесь на сайт автоматически.</p>
     </div>
   </div>
 
@@ -239,250 +189,124 @@
     </div>
   </div>
 
-  <!-- Стили модалок и степпера -->
+  <!-- Стили модалок -->
   <style>
     .ac-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:9999}
     .ac-modal.hidden{display:none}
     .ac-modal__inner{position:relative;background:#202530;border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 16px 36px rgba(0,0,0,.45);padding:18px;min-width:320px;max-width:440px;width:92%;color:#fff}
     .ac-modal__close{position:absolute;right:10px;top:10px;background:transparent;border:none;color:#fff;font-size:22px;cursor:pointer}
-
     .ac-title{font-size:18px;margin:0 0 6px}
     .ac-sub{opacity:.8;margin:0 0 12px;font-size:14px}
     .ac-hint{opacity:.65;margin:8px 0 0;font-size:12px}
-
-    .ac-steps{display:flex;gap:8px;justify-content:center;margin-bottom:10px}
-    .ac-steps span{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;border:1px solid rgba(255,255,255,.25);opacity:.6}
-    .ac-steps span.active{background:#be0036;border-color:#be0036;opacity:1}
-
-    .ac-step.hidden{display:none}
-    .ac-form{display:grid;gap:10px}
-    .ac-form input[type="text"], .ac-form input[type="email"], .ac-form input[type="password"], .ac-form input[type="file"]{
-      padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#262b36;color:#fff
-    }
+    .ac-or{display:flex;align-items:center;gap:10px;opacity:.6;margin:12px 0}
+    .ac-or:before,.ac-or:after{content:"";height:1px;background:rgba(255,255,255,.2);flex:1}
     .ac-actions{display:flex;gap:10px;justify-content:center;margin:8px 0 0}
     .ac-row{display:flex;gap:10px;justify-content:space-between;align-items:center}
-
     .btn{padding:9px 14px;border-radius:10px;font-size:14px;cursor:pointer;border:1px solid transparent}
     .btn-primary{background:#be0036;color:#fff;border-color:#be0036}
     .btn-outline{background:transparent;color:#fff;border-color:rgba(255,255,255,.3)}
     .btn-ghost{background:transparent;color:#fff;border-color:transparent;opacity:.9}
-    .ac-or{display:flex;align-items:center;gap:10px;opacity:.6;margin:12px 0}
-    .ac-or:before,.ac-or:after{content:"";height:1px;background:rgba(255,255,255,.2);flex:1}
     .ac-tg{display:flex;justify-content:center}
   </style>
 
-  <!-- ваш общий скрипт проекта -->
+  <!-- ваш общий скрипт проекта (погода/поиск/и т.д.) -->
   <script src="{% static 'js/script.js' %}?v=2025-08-21-1"></script>
 
-  <!-- === AUTH WIZARD LOGIC === -->
+  <!-- === TG AUTH FLOW === -->
   <script>
   (function(){
     const $  = s => document.querySelector(s);
     const $$ = s => Array.from(document.querySelectorAll(s));
-    const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
     const show = el => el && el.classList.remove('hidden');
     const hide = el => el && el.classList.add('hidden');
 
-    const wizard = $('#authWizard');
-    const stepChoose  = wizard?.querySelector('[data-step="choose"]');
-    const stepForm    = wizard?.querySelector('[data-step="form"]');
-    const stepVerify  = wizard?.querySelector('[data-step="verify"]');
-    const dots = {
-      choose: wizard?.querySelector('[data-step-dot="choose"]'),
-      form:   wizard?.querySelector('[data-step-dot="form"]'),
-      verify: wizard?.querySelector('[data-step-dot="verify"]'),
-    };
+    const tgModal    = $('#authTgModal');
+    const avatarModal= $('#avatarModal');
 
-    const formLogin    = $('#formLogin');
-    const formRegister = $('#formRegister');
-    const formVerify   = $('#formVerify');
-    const avatarModal  = $('#avatarModal');
-
-    // ---- utils ----
+    // CSRF
     function getCookie(name){
       const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
       return m ? m.pop() : '';
     }
     const csrftoken = getCookie('csrftoken');
 
-    async function postForm(url, formData){
-      const resp = await fetch(url, {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin',
-        headers: {'X-CSRFToken': csrftoken},
-      });
-      if (!resp.ok) {
-        let msg = `Ошибка ${resp.status}`;
-        try { const j = await resp.json(); if (j.message) msg = j.message; } catch(_){}
-        throw new Error(msg);
-      }
-      return resp.json();
-    }
     async function getJSON(url){
-      const resp = await fetch(url, { credentials: 'same-origin' });
-      return resp.json();
+      const r = await fetch(url, { credentials: 'same-origin' });
+      return r.json();
     }
-    function withPending(form, pending){
-      const btn = form?.querySelector('button[type="submit"]');
-      if (!btn) return;
-      if (pending){
-        btn.dataset._text = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = 'Отправка…';
-      } else {
-        btn.disabled = false;
-        if (btn.dataset._text) btn.textContent = btn.dataset._text;
-      }
-    }
-
-    // ---- stepper ----
-    function setDot(active){
-      Object.entries(dots).forEach(([k, el])=>{
-        if (!el) return;
-        el.classList.toggle('active', k===active);
+    async function postForm(url, fd){
+      const r = await fetch(url, {
+        method:'POST',
+        body: fd,
+        credentials:'same-origin',
+        headers:{'X-CSRFToken': csrftoken},
       });
-    }
-    function goStep(name){
-      if (!wizard) return;
-      [stepChoose, stepForm, stepVerify].forEach(el => el && hide(el));
-      if (name==='choose') { show(stepChoose); setDot('choose'); }
-      if (name==='form')   { show(stepForm);   setDot('form'); }
-      if (name==='verify') { show(stepVerify); setDot('verify'); }
-      show(wizard);
+      const ok = r.ok;
+      let data = {};
+      try{ data = await r.json(); }catch{}
+      if(!ok) throw new Error(data.message || ('HTTP ' + r.status));
+      return data;
     }
 
-    function setFormMode(mode){
-      // mode: 'login' | 'register'
-      const titles = {
-        login:    wizard.querySelector('[data-mode-title="login"]'),
-        register: wizard.querySelector('[data-mode-title="register"]')
-      };
-      if (mode==='login'){
-        hide(formRegister); show(formLogin);
-        if (titles.login)    titles.login.classList.remove('hidden');
-        if (titles.register) titles.register.classList.add('hidden');
-        setTimeout(()=> formLogin.querySelector('input[name="email"]')?.focus(), 0);
-      } else {
-        hide(formLogin); show(formRegister);
-        if (titles.login)    titles.login.classList.add('hidden');
-        if (titles.register) titles.register.classList.remove('hidden');
-        setTimeout(()=> formRegister.querySelector('input[name="name"]')?.focus(), 0);
-      }
-    }
-
-    // ---- open wizard if not authenticated ----
+    // Открыть модал входа, если не авторизованы
     (async ()=>{
       try{
         const me = await getJSON('/auth/me/');
-        if (me.authenticated){
-          if (me.avatar_url){
+        if(me.authenticated){
+          // Навбар-аватар
+          if(me.avatar_url){
             const navAva = $('#navAvatar');
             if (navAva) {
-              navAva.innerHTML = `<img src="${me.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
+              navAva.innerHTML =
+                `<img src="${me.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
             }
+          } else {
+            // нет аватара — попросим загрузить
+            show(avatarModal);
           }
         } else {
-          goStep('choose');
+          show(tgModal);
         }
       }catch(_){
-        // при ошибке сети всё равно покажем вход
-        goStep('choose');
+        // При ошибке сети всё равно предложим войти
+        show(tgModal);
       }
     })();
 
-    // ---- close buttons ----
-    $$('#authWizard [data-close]').forEach(b => on(b, 'click', ()=> hide(wizard)));
-    $$('#avatarModal [data-close]').forEach(b => on(b, 'click', ()=> hide(avatarModal)));
+    // Кнопки закрытия
+    $$('#authTgModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(tgModal)));
+    $$('#avatarModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(avatarModal)));
 
-    // ---- step choose ----
-    on($('#goLogin'), 'click', ()=>{ setFormMode('login'); goStep('form'); });
-    on($('#goRegister'), 'click', ()=>{ setFormMode('register'); goStep('form'); });
-
-    // ---- back buttons ----
-    $$('#authWizard [data-back]').forEach(b => on(b, 'click', ()=> goStep('choose')));
-
-    // ---- login submit ----
-    on(formLogin, 'submit', async (e)=>{
-      e.preventDefault();
-      const fd = new FormData(formLogin);
-      try{
-        withPending(formLogin, true);
-        const data = await postForm('/auth/login/', fd);
-        if(!data.successful){ alert(data.message||'Ошибка'); return; }
-        hide(wizard);
-        if (data.need_avatar) { show(avatarModal); }
-        else { location.reload(); }
-      }catch(err){ alert(err.message || 'Сеть/сервер недоступны'); }
-      finally { withPending(formLogin, false); }
-    });
-
-    // ---- register submit (step -> verify) ----
-    let regEmail = '';
-    on(formRegister, 'submit', async (e)=>{
-      e.preventDefault();
-      const fd = new FormData(formRegister);
-      const email = String(fd.get('email')||'').trim();
-      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-        alert('Введите корректный e-mail');
-        return;
-      }
-      regEmail = email;
-      try{
-        withPending(formRegister, true);
-        const data = await postForm('/auth/request-code/', fd);
-        if(!data.successful){ alert(data.message||'Ошибка'); return; }
-        formVerify.querySelector('input[name="email"]').value = regEmail;
-        goStep('verify');
-        setTimeout(()=> formVerify.querySelector('input[name="code"]')?.focus(), 0);
-      }catch(err){ alert(err.message || 'Сеть/сервер недоступны'); }
-      finally{ withPending(formRegister, false); }
-    });
-
-    // ---- verify submit ----
-    on(formVerify, 'submit', async (e)=>{
-      e.preventDefault();
-      const fd = new FormData(formVerify);
-      if (!fd.get('email')) fd.set('email', regEmail || '');
-      try{
-        withPending(formVerify, true);
-        const data = await postForm('/auth/verify/', fd);
-        if(!data.successful){ alert(data.message||'Ошибка'); return; }
-        hide(wizard);
-        // новый пользователь — почти наверняка без аватара
-        show(avatarModal);
-      }catch(err){ alert(err.message || 'Сеть/сервер недоступны'); }
-      finally{ withPending(formVerify, false); }
-    });
-
-    // ---- avatar submit ----
+    // Отправка аватара
     const formAvatar = $('#formAvatar');
-    on(formAvatar, 'submit', async (e)=>{
+    formAvatar?.addEventListener('submit', async (e)=>{
       e.preventDefault();
       const fd = new FormData(formAvatar);
       const file = fd.get('avatar');
       if(!(file && ['image/jpeg','image/png','image/webp'].includes(file.type))){
-        alert('Допустимы JPG/PNG/WebP');
-        return;
+        alert('Допустимы JPG/PNG/WebP'); return;
       }
       if(file.size > 5*1024*1024){
-        alert('Файл слишком большой (макс 5MB)');
-        return;
+        alert('Файл слишком большой (макс 5MB)'); return;
       }
+      const btn = formAvatar.querySelector('button[type="submit"]');
+      if (btn){ btn.dataset._text = btn.textContent; btn.disabled = true; btn.textContent = 'Загрузка…'; }
       try{
-        withPending(formAvatar, true);
         const data = await postForm('/auth/upload-avatar/', fd);
         if(!data.successful){ alert(data.message||'Ошибка'); return; }
         hide(avatarModal);
         location.reload();
-      }catch(err){ alert(err.message || 'Сеть/сервер недоступны'); }
-      finally{ withPending(formAvatar, false); }
+      }catch(err){
+        alert(err.message || 'Сеть/сервер недоступны');
+      }finally{
+        if (btn){ btn.disabled = false; btn.textContent = btn.dataset._text || 'Сохранить'; }
+      }
     });
 
-    // ---- ESC закрывает модалки ----
+    // ESC закрывает модалки
     document.addEventListener('keydown', (e)=>{
       if(e.key === 'Escape'){
-        if(!wizard?.classList.contains('hidden')) hide(wizard);
+        if(!tgModal?.classList.contains('hidden')) hide(tgModal);
         if(!avatarModal?.classList.contains('hidden')) hide(avatarModal);
       }
     });
