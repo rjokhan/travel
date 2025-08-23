@@ -7,8 +7,6 @@
   <title>A CLUB TRAVEL — Index</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2025-08-21-1">
-  <script src="{% static 'js/script.js' %}?v=2025-08-21-1"></script>
-
 </head>
 <body>
 
@@ -38,9 +36,6 @@
           <div class="icon" aria-hidden="true"></div>
           <div class="weatherTexts">
             <span id="weatherTextTop">Weather</span>
-            <button id="openAuthBtn" class="btn btn-primary" style="margin-left:12px;">
-              Войти / Регистрация
-            </button>
             <span id="weatherText">15°C</span>
           </div>
         </div>
@@ -117,7 +112,7 @@
             </div>
 
             <!-- стрелка перехода -->
-            <a href="{% url 'trip_detail' t.slug %}" class="trip-go" aria-label="Open trip"></a>
+            <a href="{% url 'travelapp:trip_detail' t.slug %}" class="trip-go" aria-label="Open trip"></a>
           </div>
         </article>
         {% empty %}
@@ -131,7 +126,7 @@
   <!-- Нижнее меню -->
   <nav class="bottom-nav" aria-label="Bottom navigation">
     <div class="bottom-inner">
-      <a class="tab tab--home active_page" href="{% url 'index' %}"><span class="ico"></span></a>
+      <a class="tab tab--home active_page" href="{% url 'travelapp:index' %}"><span class="ico"></span></a>
       <a class="tab tab--support" href="#"><span class="ico"></span></a>
       <a class="tab tab--saved" href="#"><span class="ico"></span></a>
       <a class="tab tab--profile" href="#"><span class="ico" id="navAvatar"></span></a>
@@ -154,9 +149,6 @@
     </div>
   </div>
 
-  <!-- ваш общий скрипт проекта -->
-  <script src="{% static 'js/script.js?v=2025-08-21-1' %}"></script>
-
   <!-- ===== AUTH MODAL ===== -->
   <div id="authModal" class="ac-modal hidden" role="dialog" aria-modal="true">
     <div class="ac-modal__inner">
@@ -169,7 +161,7 @@
 
       <div class="ac-pane" data-pane="login">
         <form id="formLogin" class="ac-form">
-          <input type="email" name="email" placeholder="E‑mail" required autocomplete="email" />
+          <input type="email" name="email" placeholder="E-mail" required autocomplete="email" />
           <input type="password" name="password" placeholder="Пароль" required autocomplete="current-password" />
           <button type="submit" class="btn btn-primary">Войти</button>
         </form>
@@ -178,7 +170,7 @@
       <div class="ac-pane hidden" data-pane="register">
         <form id="formRegister" class="ac-form">
           <input type="text" name="name" placeholder="Имя" required autocomplete="name" />
-          <input type="email" name="email" placeholder="E‑mail" required autocomplete="email" />
+          <input type="email" name="email" placeholder="E-mail" required autocomplete="email" />
           <input type="password" name="password" placeholder="Пароль" required autocomplete="new-password" />
           <button type="submit" class="btn btn-primary">Получить код</button>
         </form>
@@ -218,6 +210,9 @@
       padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#262b36;color:#fff
     }
   </style>
+
+  <!-- ваш общий скрипт проекта -->
+  <script src="{% static 'js/script.js' %}?v=2025-08-21-1"></script>
 
   <!-- === AUTH / AVATAR MODALS (FINAL SCRIPT) === -->
   <script>
@@ -260,12 +255,7 @@
     // Модалки и табы
     const authModal = $('#authModal');
     const avatarModal = $('#avatarModal');
-    const openBtn = $('#openAuthBtn');
 
-    on(openBtn, 'click', ()=> {
-      show(authModal);
-      setTimeout(()=> authModal.querySelector('input[autocomplete="email"]')?.focus(), 0);
-    });
     authModal?.querySelectorAll('[data-ac-close]').forEach(b=> b.onclick = ()=> hide(authModal));
     avatarModal?.querySelectorAll('[data-ac-close]').forEach(b=> b.onclick = ()=> hide(avatarModal));
 
@@ -319,7 +309,7 @@
       const fd = new FormData(formRegister);
       const email = String(fd.get('email')||'').trim();
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-        alert('Введите корректный e‑mail');
+        alert('Введите корректный e-mail');
         return;
       }
       regEmail = email;
@@ -376,7 +366,7 @@
       finally{ withPending(formAvatar, false); }
     });
 
-    // Если уже залогинен — показать аватар/имя
+    // Проверка авторизации и автопоказ модалки при входе
     (async ()=>{
       try{
         const data = await getJSON('/auth/me/');
@@ -387,15 +377,15 @@
               navAva.innerHTML =
                 `<img src="${data.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
             }
-            if (openBtn) {
-              openBtn.outerHTML =
-                `<img src="${data.avatar_url}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`;
-            }
-          }else if (openBtn){
-            openBtn.textContent = data.name || data.email || 'Профиль';
           }
+        } else {
+          show(authModal);
+          setTimeout(()=> authModal.querySelector('input[autocomplete="email"]')?.focus(), 0);
         }
-      }catch(_){}
+      }catch(_){
+        // При ошибке сети тоже показываем модалку
+        show(authModal);
+      }
     })();
 
     // ESC закрывает модалки

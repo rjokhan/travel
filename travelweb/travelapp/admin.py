@@ -1,13 +1,11 @@
+# travelapp/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.http import HttpResponse
+
 from .models import Country, Trip, Profile, RegistrationRequest
-
-
-
-from .models import Country, Trip
 
 # --- Снять возможные старые регистрации (чтобы не ловить AlreadyRegistered) ---
 from django.contrib.admin.sites import NotRegistered
@@ -163,7 +161,6 @@ class TripAdmin(admin.ModelAdmin):
     def duplicate_selected(self, request, qs):
         count = 0
         for obj in qs:
-            old_pk = obj.pk
             obj.pk = None
             obj.slug = ""           # чтобы пересоздался в save()
             obj.title_full = f"{obj.title_full} (копия)"
@@ -187,6 +184,9 @@ class TripAdmin(admin.ModelAdmin):
         return resp
 
 
+# =========================
+# Profile
+# =========================
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "display_name", "is_email_verified", "avatar_thumb")
@@ -200,8 +200,15 @@ class ProfileAdmin(admin.ModelAdmin):
     avatar_thumb.short_description = "Аватар"
 
 
+# =========================
+# RegistrationRequest
+# =========================
 @admin.register(RegistrationRequest)
 class RegistrationRequestAdmin(admin.ModelAdmin):
-    list_display = ("id", "email", "name", "created_at", "expires_at", "is_expired")
+    list_display = ("id", "email", "name", "created_at", "expires_at", "expired")
     search_fields = ("email", "name")
     ordering = ("-created_at",)
+
+    @admin.display(boolean=True, description=_("Просрочено"))
+    def expired(self, obj):
+        return obj.is_expired()

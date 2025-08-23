@@ -1,47 +1,43 @@
 # travelweb/accounts/views.py
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import get_user_model, authenticate, login
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.core.exceptions import ObjectDoesNotExist
 
-from travelapp.models import Profile              # <-- единственный Profile в проекте
-from .models import EmailCode                     # <-- только EmailCode из accounts
+from travelapp.models import Profile              # единственный Profile в проекте
+from .models import EmailCode                     # только EmailCode из accounts
 from .utils import generate_code, send_signup_code
+
+
+User = get_user_model()
 
 
 # ---------- helpers ----------
 
 def ok(**kwargs):
-    """
-    Единый "успешный" ответ.
-    """
     base = {"successful": True, "message": "ok"}
     base.update(kwargs)
     return JsonResponse(base)
 
 
 def err(msg, code=400):
-    """
-    Единый "ошибочный" ответ.
-    """
     return JsonResponse({"successful": False, "message": msg}, status=code)
 
 
 def _get_profile(user, create=False):
     """
     Безопасно получить профиль пользователя.
-    Если related_name у OneToOneField нестандартный, попробуем напрямую через ORM.
+    Пробуем обратную связь OneToOne и прямой поиск.
     """
-    prof = getattr(user, "profile", None)
-    if prof:
-        return prof
+    try:
+        return user.profile  # если related_name='profile'
+    except ObjectDoesNotExist:
+        pass
     try:
         return Profile.objects.get(user=user)
     except Profile.DoesNotExist:
-        if create:
-            return Profile.objects.create(user=user)
-        return None
+        return Profile.objects.create(user=user) if create else None
 
 
 def _need_avatar(user) -> bool:
@@ -88,6 +84,10 @@ def verify_code(request):
     email = request.POST.get("email", "").strip().lower()
     code = request.POST.get("code", "").strip()
 
+    # Базовая валидация формата
+    if not (len(code) == 6 and code.isdigit()):
+        return err("Код должен быть из 6 цифр")
+
     item = (
         EmailCode.objects.filter(email=email, purpose="signup", used=False)
         .order_by("-created_at")
@@ -96,13 +96,17 @@ def verify_code(request):
     if not item or item.code != code or not item.is_valid():
         return err("Неверный или просроченный код")
 
-    # Создание пользователя
+    # Создание/получение пользователя
     user, created = User.objects.get_or_create(
         username=email, defaults={"email": email}
     )
     if created:
         user.first_name = item.extra.get("name", "")
-        user.password = item.extra.get("password_hash", make_password(None))
+        pwd_hash = item.extra.get("password_hash")
+        if pwd_hash:
+            user.password = pwd_hash  # уже хэш
+        else:
+            user.set_unusable_password()
         user.save()
 
     # Профиль существует — ок; нет — создадим
@@ -142,7 +146,13 @@ def me(request):
 
     user = request.user
     prof = _get_profile(user, create=False)
-    avatar_url = prof.avatar.url if (prof and getattr(prof, "avatar", None)) else ""
+    avatar_url = ""
+    if prof and getattr(prof, "avatar", None):
+        try:
+            if getattr(prof.avatar, "name", ""):
+                avatar_url = prof.avatar.url
+        except Exception:
+            avatar_url = ""
 
     return JsonResponse(
         {

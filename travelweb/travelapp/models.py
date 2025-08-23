@@ -1,9 +1,13 @@
 # travelapp/models.py
 from __future__ import annotations
 
+import re
+import uuid
+import hashlib
+from datetime import timedelta
+
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.functions import Lower
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
@@ -11,14 +15,11 @@ from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from datetime import timedelta
-import uuid, hashlib
 
 User = get_user_model()
 
 
-
-
+# ---------------------- Country ----------------------
 class Country(models.Model):
     name = models.CharField(
         "Страна",
@@ -26,8 +27,9 @@ class Country(models.Model):
         help_text="Официальное название страны (на русском или английском)",
     )
     iso2 = models.CharField(
-        "ISO‑код (2 буквы)",
+        "ISO-код (2 буквы)",
         max_length=2,
+        unique=True,  # уникальность после нормализации в clean()
         help_text="Например: UZ, RU, KZ. При сохранении будет приведён к верхнему регистру.",
     )
 
@@ -35,18 +37,20 @@ class Country(models.Model):
         verbose_name = "Страна"
         verbose_name_plural = "Страны"
         ordering = ("name",)
-        # Уникальность ISO2 без учёта регистра + индекс для быстрых поисков
-        constraints = [models.UniqueConstraint(Lower("iso2"), name="uniq_country_iso2_ci")]
-        indexes = [models.Index(Lower("iso2"), name="idx_country_iso2_ci")]
+        indexes = [
+            models.Index(fields=("iso2",), name="idx_country_iso2"),
+        ]
 
     def clean(self):
         """
         Нормализуем и валидируем iso2.
+        Делается к ASCII-латинице, затем приводим к UPPER — так уникальность на поле
+        работает кросс-БД (без функциональных индексов).
         """
         if self.iso2:
             code = self.iso2.strip()
-            if len(code) != 2 or not code.isalpha():
-                raise ValidationError({"iso2": "ISO‑код должен состоять из 2 латинских букв."})
+            if not re.fullmatch(r"[A-Za-z]{2}", code):
+                raise ValidationError({"iso2": "ISO-код должен состоять из 2 латинских букв."})
             self.iso2 = code.upper()
 
     def __str__(self) -> str:
@@ -56,7 +60,6 @@ class Country(models.Model):
     def flag_emoji(self) -> str:
         """
         Возвращает флаг-эмодзи на основе ISO2 (например, 'UZ' -> 🇺🇿).
-        Хранить картинку в БД не нужно.
         """
         try:
             a, b = (self.iso2 or "").upper()
@@ -66,19 +69,13 @@ class Country(models.Model):
         return chr(base + ord(a)) + chr(base + ord(b))
 
 
-def trip_hero_upload_to(instance: "Trip", filename: str) -> str:
-    """
-    Путь загрузки обложки: trips/hero/<slug>/<YYYY>/<MM>/<filename>
-    """
-    slug = instance.slug or "trip"
-    y_m = instance.date_start.strftime("%Y/%m") if instance.date_start else "0000/00"
-    return f"trips/hero/{slug}/{y_m}/{filename}"
-
+# ---------------------- Profile ----------------------
 def avatar_upload_to(instance, filename: str) -> str:
     """
     Путь загрузки аватарки: avatars/<user_id>/<uuid>_filename
     """
     return f"avatars/{instance.user_id}/{uuid.uuid4().hex}_{filename}"
+
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
@@ -90,7 +87,7 @@ class Profile(models.Model):
         null=True,
         validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp"])],
     )
-    is_email_verified = models.BooleanField("E‑mail подтверждён", default=False)
+    is_email_verified = models.BooleanField("E-mail подтверждён", default=False)
 
     class Meta:
         verbose_name = "Профиль"
@@ -98,6 +95,7 @@ class Profile(models.Model):
 
     def __str__(self) -> str:
         return f"Profile({getattr(self.user, 'email', self.user.username)})"
+
 
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
@@ -108,13 +106,14 @@ def create_profile(sender, instance, created, **kwargs):
         )
 
 
+# ---------------- RegistrationRequest (optional) ----------------
 class RegistrationRequest(models.Model):
     """
     Временная заявка на регистрацию до ввода кода.
-    Пароль хранить здесь не будем — положим сырой пароль во временную сессию.
+    Пароль здесь не храним.
     """
     name = models.CharField("Имя", max_length=150)
-    email = models.EmailField("E‑mail", unique=True)
+    email = models.EmailField("E-mail", unique=True)
     code_hash = models.CharField("Хэш кода", max_length=255)
     created_at = models.DateTimeField("Создано", auto_now_add=True)
     expires_at = models.DateTimeField("Истекает")
@@ -146,6 +145,15 @@ class RegistrationRequest(models.Model):
             expires_at=timezone.now() + timedelta(minutes=lifetime_minutes),
         )
 
+
+# ---------------------- Trip ----------------------
+def trip_hero_upload_to(instance: "Trip", filename: str) -> str:
+    """
+    Путь загрузки обложки: trips/hero/<slug>/<YYYY>/<MM>/<filename>
+    """
+    slug = instance.slug or "trip"
+    y_m = instance.date_start.strftime("%Y/%m") if instance.date_start else "0000/00"
+    return f"trips/hero/{slug}/{y_m}/{filename}"
 
 
 class Trip(models.Model):
@@ -219,8 +227,6 @@ class Trip(models.Model):
     created_at = models.DateTimeField("Создано", auto_now_add=True)
     updated_at = models.DateTimeField("Обновлено", auto_now=True)
 
-
-
     class Meta:
         verbose_name = "Путешествие"
         verbose_name_plural = "Путешествия"
@@ -268,17 +274,22 @@ class Trip(models.Model):
         return ""
 
     def get_absolute_url(self):
-        return reverse("trip_detail", kwargs={"slug": self.slug})
+        return reverse("travelapp:trip_detail", kwargs={"slug": self.slug})
 
     # --------- Валидация и автогенерация ----------
     def clean(self):
         errors = {}
+
         # Даты
         if self.date_start and self.date_end and self.date_end < self.date_start:
             errors["date_end"] = "Дата окончания не может быть раньше даты начала."
 
         # Больше брони, чем мест
-        if self.capacity is not None and self.booked is not None and self.booked > self.capacity:
+        if (
+            self.capacity is not None
+            and self.booked is not None
+            and self.booked > self.capacity
+        ):
             errors["booked"] = "Забронировано больше, чем доступная вместимость."
 
         # Цена
@@ -292,13 +303,24 @@ class Trip(models.Model):
         # Автогенерация слага (стабильный и короткий)
         if not self.slug:
             base = slugify(self.title_short or self.title_full)[:50] or "trip"
-            slug = base
-            if type(self).objects.filter(slug=slug).exists():
-                slug = f"{base}-{self.date_start:%Y%m%d}" if self.date_start else f"{base}-1"
-            self.slug = slug
+            slug_val = base
+            # добавим дату, если есть коллизия
+            if type(self).objects.filter(slug=slug_val).exists():
+                suffix = f"{self.date_start:%Y%m%d}" if self.date_start else "1"
+                slug_val = f"{base}-{suffix}"
+            # если всё ещё занято — увеличиваем счётчик
+            counter = 2
+            while type(self).objects.filter(slug=slug_val).exists():
+                slug_val = f"{base}-{counter}"
+                counter += 1
+            self.slug = slug_val
 
         # На всякий случай приводим booked в допустимый диапазон
-        if self.capacity is not None and self.booked is not None and self.booked > self.capacity:
+        if (
+            self.capacity is not None
+            and self.booked is not None
+            and self.booked > self.capacity
+        ):
             self.booked = self.capacity
 
         super().save(*args, **kwargs)

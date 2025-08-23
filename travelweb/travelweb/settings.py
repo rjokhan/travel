@@ -24,8 +24,10 @@ ALLOWED_HOSTS = [
 # Для Django 4+: со схемой!
 CSRF_TRUSTED_ORIGINS = [
     "https://travel.ayolclub.uz",
-    "https://*.ayolclub.uz",
+    "https://ayolclub.uz",
+    "https://www.ayolclub.uz",
 ]
+
 
 # Если за Nginx/проксей — говорим Django, что клиент за HTTPS
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -108,7 +110,7 @@ STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 
 # Откуда collectstatic соберёт файлы (если есть папка static в проекте)
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_DIRS = [BASE_DIR / "static", BASE_DIR / "staticfiles",]
 
 # Куда collectstatic складывает итог (раздаёт Nginx)
 STATIC_ROOT = Path("/var/www/travel_staticfiles")
@@ -199,5 +201,5 @@ JAZZMIN_UI_TWEAKS = {
 # ========== CITIES-LIGHT ==========
 CITIES_LIGHT_TRANSLATION_LANGUAGES = ["ru", "en"]
 CITIES_LIGHT_CITY_SOURCES = [
-    "http://download.geonames.org/export/dump/cities1000.zip",
+    "https://download.geonames.org/export/dump/cities1000.zip",
 ]
