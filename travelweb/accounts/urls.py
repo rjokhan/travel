@@ -1,14 +1,10 @@
-# travelweb/urls.py
-from django.contrib import admin
+# travelweb/accounts/urls.py
 from django.urls import path
-from accounts import views as acc
+from . import views
+
+app_name = "accounts"
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-
-    path("auth/request-code/", acc.request_code, name="request_code"),
-    path("auth/verify/", acc.verify_code, name="verify_code"),
-    path("auth/login/", acc.login_view, name="login"),
-    path("auth/me/", acc.me, name="me"),
-    path("auth/upload-avatar/", acc.upload_avatar, name="upload_avatar"),
+    path("telegram/callback/", views.telegram_callback, name="tg_cb"),
+    # ваши существующие /auth/... если оставляете
 ]

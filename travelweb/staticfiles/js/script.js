@@ -1,73 +1,23 @@
 // ================== DOM ==================
-const modal        = document.getElementById('createUserModal');
-const nameInput    = document.getElementById('name');
-const phoneInput   = document.getElementById('phone');
-const hiEl         = document.getElementById('hi');
+const hiEl          = document.getElementById('hi');
 
-const weatherText  = document.getElementById('weatherText');
-const weatherIconEl= document.querySelector('.weather .icon');
+const weatherText   = document.getElementById('weatherText');
+const weatherIconEl = document.querySelector('.weather .icon');
 
-const locationBadge= document.getElementById('locationBadge');
+const locationBadge = document.getElementById('locationBadge');
 
-const searchTrigger= document.getElementById('searchTrigger');
-const overlay      = document.getElementById('searchOverlay');
-const field        = document.getElementById('searchField');
-const closeBtn     = document.getElementById('searchClose');
-const form         = document.getElementById('searchForm');
+const searchTrigger = document.getElementById('searchTrigger');
+const overlay       = document.getElementById('searchOverlay');
+const field         = document.getElementById('searchField');
+const closeBtn      = document.getElementById('searchClose');
+const form          = document.getElementById('searchForm');
 
-const fab          = document.getElementById('editProfileFab');
-
-document.querySelectorAll('[data-close]')
-  .forEach(b => b.addEventListener('click', closeModal));
-
-// save button может отсутствовать на части страниц
-const saveBtn = document.getElementById('saveUserBtn');
-if (saveBtn) saveBtn.addEventListener('click', saveUser);
-if (fab) fab.addEventListener('click', openModal);
-
-function openModal(){
-  if (!modal) return;
-  modal.classList.add('open');
-  setTimeout(()=> nameInput && nameInput.focus(), 50);
-}
-function closeModal(){
-  if (!modal) return;
-  modal.classList.remove('open');
-}
-
-
-// ================== USER INIT ==================
-(function initUser(){
-  try{
-    const saved = localStorage.getItem('aclub_user');
-    if (saved) {
-      const user = JSON.parse(saved);
-      if (user?.name && hiEl) hiEl.textContent = `Салом, ${user.name} 👋`;
-    } else {
-      // модалка есть только на index — на других страницах просто пропускаем
-      if (modal) openModal();
-    }
-  }catch{/* ignore */}
-})();
-
-function saveUser(){
-  if (!nameInput) return;
-  const name  = (nameInput.value  || '').trim();
-  const phone = (phoneInput?.value || '').trim();
-  if (!name){
-    alert('Укажите имя.');
-    return;
-  }
-  const user = { name, phone };
-  try{ localStorage.setItem('aclub_user', JSON.stringify(user)); }catch{}
-  if (hiEl) hiEl.textContent = `Салом, ${user.name} 👋`;
-  closeModal();
-}
+const fab           = document.getElementById('editProfileFab'); // может отсутствовать
 
 
 // ================== WEATHER ==================
 function wmoToEmoji(code, isDay){
-  const sun='🍑', moon='🍑', sunCloud='🌤️', cloud='☁️', fog='🌫️',
+  const sun='☀️', moon='🌙', sunCloud='🌤️', cloud='☁️', fog='🌫️',
         drizzle='🌦️', rain='🌧️', snow='❄️', thunder='⛈️';
   if (code === 0) return isDay ? sun : moon;
   if (code === 1 || code === 2) return sunCloud;
@@ -260,16 +210,17 @@ if (v && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
   try{ v.pause(); }catch{}
 }
 
-// Аватар в навбаре (без ошибок, если элемента нет)
+
+// Аватар в навбаре (мягкий дефолт — из статики)
 (function setNavAvatar(){
   const el = document.getElementById('navAvatar');
   if (!el) return;
-  const url = localStorage.getItem('aclub_avatar') || '../media/avatar-default.jpg';
+  const url = localStorage.getItem('aclub_avatar') || '/static/img/avatar-default.jpg';
   el.style.backgroundImage = `url("${url}")`;
 })();
 
 
-// ===== Desktop hint (всегда показываем не на телефоне) =====
+// ===== Desktop hint (показываем на не-телефонах) =====
 (function deviceHintInit(){
   try{
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -298,6 +249,3 @@ if (v && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     });
   }catch{/* ignore */}
 })();
-
-
-

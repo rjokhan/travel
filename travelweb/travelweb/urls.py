@@ -15,7 +15,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include(("travelapp.urls", "travelapp"), namespace="travelapp")),
     path("auth/", include(("accounts.urls", "accounts"), namespace="accounts")),
-    path("mailjet/probe/", mailjet_probe, name="mailjet-probe"),
+    path("auth/", include("accounts.urls", namespace="accounts")),
 ]
 
 if settings.DEBUG:

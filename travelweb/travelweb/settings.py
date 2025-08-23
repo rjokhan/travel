@@ -13,7 +13,8 @@ SECRET_KEY = os.getenv(
     "django-insecure-3n4(6s!m(=h)odg%%+r2d1aayibs7o1qbud-%qtfgnhyd7)wjw",
 )
 
-DEBUG = False
+# можно переключать через .env: DEBUG=True/False
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [
     "travel.ayolclub.uz",
@@ -32,6 +33,8 @@ CSRF_TRUSTED_ORIGINS = [
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 
 # ========= APPS =========
 INSTALLED_APPS = [
@@ -72,6 +75,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                # чтобы в шаблонах был {{ TELEGRAM_BOT_NAME }} для кнопки логина
+                "travelweb.context_processors.telegram_settings",
             ],
         },
     },
@@ -120,9 +125,7 @@ LOGIN_REDIRECT_URL = "profile"
 LOGOUT_REDIRECT_URL = "login"
 
 # ========= EMAIL =========
-EMAIL_BACKEND = os.getenv(
-    "EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
-)
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST = os.getenv("EMAIL_HOST", "in-v3.mailjet.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
@@ -130,6 +133,13 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@travel.ayolclub.uz")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# ========= TELEGRAM LOGIN =========
+# добавьте в .env:
+# TELEGRAM_BOT_TOKEN=123456:ABCDEF...
+# TELEGRAM_BOT_NAME=@YourBot
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8174443274:AAEWHB1BreYgWWSx5Ndd_jYG9lx2UekE-X4")
+TELEGRAM_BOT_NAME = os.getenv("TELEGRAM_BOT_NAME", "travel_ayolclub_bot").lstrip("@")  # без @
 
 # ========= JAZZMIN =========
 JAZZMIN_SETTINGS = {
@@ -184,3 +194,22 @@ CITIES_LIGHT_TRANSLATION_LANGUAGES = ["ru", "en"]
 CITIES_LIGHT_CITY_SOURCES = [
     "https://download.geonames.org/export/dump/cities1000.zip",
 ]
+
+# ========= LOGGING (в stdout -> подхватит gunicorn) =========
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    # Чуть подробнее логи для вашего приложения
+    "loggers": {
+        "accounts": {"handlers": ["console"], "level": "INFO", "propagate": True},
+        "travelapp": {"handlers": ["console"], "level": "INFO", "propagate": True},
+        "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": True},
+    },
+}
