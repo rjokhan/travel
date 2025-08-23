@@ -1,46 +1,41 @@
 # travelweb/settings.py
 from pathlib import Path
 import os
-
-# ---- env ----
 from dotenv import load_dotenv
+
+# ========= BASE / ENV =========
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(dotenv_path=BASE_DIR / ".env")
 
-# ========== БАЗА ==========
-# Не хардкодь ключ в проде: можно положить в .env (переменная SECRET_KEY)
+# ========= CORE =========
 SECRET_KEY = os.getenv(
     "SECRET_KEY",
     "django-insecure-3n4(6s!m(=h)odg%%+r2d1aayibs7o1qbud-%qtfgnhyd7)wjw",
 )
 
-# Прод
 DEBUG = False
 
 ALLOWED_HOSTS = [
     "travel.ayolclub.uz",
-    ".ayolclub.uz",   # разрешим любые поддомены (www и т.п.)
+    ".ayolclub.uz",
     "localhost",
     "127.0.0.1",
 ]
 
-# Для Django 4+: со схемой!
 CSRF_TRUSTED_ORIGINS = [
     "https://travel.ayolclub.uz",
     "https://ayolclub.uz",
     "https://www.ayolclub.uz",
+    "https://*.ayolclub.uz",
 ]
 
-# Если за Nginx/проксей — говорим Django, что клиент за HTTPS
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
-# Безопасные cookies под HTTPS
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
-# ========== ПРИЛОЖЕНИЯ ==========
+# ========= APPS =========
 INSTALLED_APPS = [
-    "jazzmin",                 # всегда первым
+    "jazzmin",
     "fontawesomefree",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -50,10 +45,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "cities_light",
     "travelapp",
-    "accounts",  # для регистрации/входа
+    "accounts",
 ]
 
-# ========== MIDDLEWARE ==========
+# ========= MIDDLEWARE =========
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -66,7 +61,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "travelweb.urls"
 
-# ========== ШАБЛОНЫ ==========
+# ========= TEMPLATES =========
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -84,7 +79,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "travelweb.wsgi.application"
 
-# ========== БД ==========
+# ========= DATABASE =========
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -92,7 +87,7 @@ DATABASES = {
     }
 }
 
-# ========== ПАРОЛИ ==========
+# ========= PASSWORDS =========
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -100,32 +95,33 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# ========== ЛОКАЛИ ==========
+# ========= I18N / TZ =========
 LANGUAGE_CODE = "ru"
 TIME_ZONE = "Asia/Tashkent"
 USE_I18N = True
 USE_TZ = True
 
-# ========== СТАТИКА/МЕДИА ==========
+# ========= STATIC / MEDIA =========
 STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 
-STATICFILES_DIRS = [BASE_DIR / "static", BASE_DIR / "staticfiles"]
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+    BASE_DIR / "staticfiles",
+]
 STATIC_ROOT = Path("/var/www/travel_staticfiles")
 MEDIA_ROOT = Path("/var/www/travel_media")
 
-# ========== АВТО-ИД ==========
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ========== LOGIN FLOW ==========
+# ========= LOGIN FLOW =========
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "profile"
 LOGOUT_REDIRECT_URL = "login"
 
-# ========== EMAIL (для отправки кода) ==========
+# ========= EMAIL =========
 EMAIL_BACKEND = os.getenv(
-    "EMAIL_BACKEND",
-    "django.core.mail.backends.smtp.EmailBackend",
+    "EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
 )
 EMAIL_HOST = os.getenv("EMAIL_HOST", "in-v3.mailjet.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
@@ -135,30 +131,25 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@travel.ayolclub.uz")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
-# ========== JAZZMIN ==========
+# ========= JAZZMIN =========
 JAZZMIN_SETTINGS = {
     "site_title": "A CLUB TRAVEL — Админка",
     "site_header": "A CLUB TRAVEL",
     "site_brand": "A CLUB TRAVEL",
     "welcome_sign": "Добро пожаловать! Управление путешествиями и бронированиями",
     "copyright": "© A CLUB",
-
     "site_logo": "admin/brand/logo-white.svg",
     "login_logo": "admin/brand/logo-mark.svg",
     "login_logo_dark": "admin/brand/logo-white.svg",
-
     "search_model": ["travelapp.Trip", "travelapp.Country"],
     "user_avatar": None,
-
     "topmenu_links": [
         {"name": "Панель", "url": "admin:index", "permissions": ["auth.view_user"]},
         {"app": "travelapp"},
     ],
-
     "show_sidebar": True,
     "navigation_expanded": True,
     "order_with_respect_to": ["travelapp", "auth"],
-
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
@@ -167,10 +158,8 @@ JAZZMIN_SETTINGS = {
         "travelapp.country": "fas fa-flag",
         "travelapp.trip": "fas fa-suitcase-rolling",
     },
-
     "custom_css": "admin/override.css",
     "custom_js": None,
-
     "theme": "darkly",
     "show_ui_builder": False,
 }
@@ -190,7 +179,7 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_small_text": False,
 }
 
-# ========== CITIES-LIGHT ==========
+# ========= CITIES-LIGHT =========
 CITIES_LIGHT_TRANSLATION_LANGUAGES = ["ru", "en"]
 CITIES_LIGHT_CITY_SOURCES = [
     "https://download.geonames.org/export/dump/cities1000.zip",
