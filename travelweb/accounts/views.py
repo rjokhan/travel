@@ -13,26 +13,17 @@ from .utils import generate_code, send_signup_code
 
 log = logging.getLogger(__name__)
 
-
 # ---------- helpers ----------
 
 def ok(**kwargs):
-    """Единый успешный ответ."""
     base = {"successful": True, "message": "ok"}
     base.update(kwargs)
     return JsonResponse(base)
 
-
 def err(msg, code=400):
-    """Единый ошибочный ответ (без 500 из view)."""
     return JsonResponse({"successful": False, "message": msg}, status=code)
 
-
 def _get_profile(user, create=False):
-    """
-    Безопасно получить профиль пользователя.
-    Если related_name у OneToOneField нестандартный, попробуем напрямую через ORM.
-    """
     prof = getattr(user, "profile", None)
     if prof:
         return prof
@@ -43,11 +34,9 @@ def _get_profile(user, create=False):
             return Profile.objects.create(user=user)
         return None
 
-
 def _need_avatar(user) -> bool:
     prof = _get_profile(user, create=False)
     return not (prof and getattr(prof, "avatar", None))
-
 
 # ---------- endpoints ----------
 
@@ -55,59 +44,55 @@ def _need_avatar(user) -> bool:
 def request_code(request):
     """
     POST: name, email, password
-    Высылаем код подтверждения регистрации на email.
-    Никаких 500: ошибки логируем и отдаём понятное сообщение.
+    Присылаем код на почту. Любые сбои -> контролируемый JSON, не HTML-500.
     """
-    name = (request.POST.get("name") or "").strip()
-    email = (request.POST.get("email") or "").strip().lower()
-    password = request.POST.get("password") or ""
-
-    if not (name and email and password):
-        return err("Заполните все поля")
-
-    # Если пользователь уже существует — не выдаём код регистрации
-    if User.objects.filter(username=email).exists():
-        return err("Пользователь с таким e-mail уже существует", 409)
-
     try:
-        with transaction.atomic():
-            # На всякий случай удалим старые неиспользованные коды
-            EmailCode.objects.filter(email=email, purpose="signup", used=False).delete()
+        name = (request.POST.get("name") or "").strip()
+        email = (request.POST.get("email") or "").strip().lower()
+        password = request.POST.get("password") or ""
 
-            code = generate_code()
-            EmailCode.create_signup(
+        if not (name and email and password):
+            return err("Заполните все поля")
+
+        if User.objects.filter(username=email).exists():
+            return err("Пользователь с таким e-mail уже существует", 409)
+
+        code = generate_code()
+
+        # Создаём запись напрямую, без модельного create_signup()
+        with transaction.atomic():
+            EmailCode.objects.filter(email=email, purpose="signup", used=False).delete()
+            EmailCode.objects.create(
                 email=email,
                 code=code,
-                name=name,
-                password_hash=make_password(password),
+                purpose="signup",
+                used=False,
+                extra={"name": name, "password_hash": make_password(password)},
             )
 
-        # Отправка письма не должна валить сервер ни при каких обстоятельствах
+        # Отправка письма не должна валить запрос
         try:
-            send_signup_code(email, code)  # внутренняя реализация уже ловит ошибки
-        except Exception:  # паранойя
+            send_signup_code(email, code)
+        except Exception:
             log.exception("send_signup_code failed for %s", email)
 
         return ok()
 
     except Exception:
-        log.exception("request_code failed for %s", email)
+        log.exception("request_code failed")
+        # ВАЖНО: отдаём JSON, чтобы фронт смог показать message
         return err("Не удалось выдать код. Попробуйте позже или свяжитесь с поддержкой.", 500)
 
 
 @require_POST
 def verify_code(request):
-    """
-    POST: email, code
-    Проверяем код; создаём пользователя и логиним.
-    """
-    email = (request.POST.get("email") or "").strip().lower()
-    code = (request.POST.get("code") or "").strip()
-
-    if not (email and code):
-        return err("Укажите e-mail и код")
-
+    """POST: email, code — подтверждение, создание пользователя, логин."""
     try:
+        email = (request.POST.get("email") or "").strip().lower()
+        code = (request.POST.get("code") or "").strip()
+        if not (email and code):
+            return err("Укажите e-mail и код")
+
         item = (
             EmailCode.objects.filter(email=email, purpose="signup", used=False)
             .order_by("-created_at")
@@ -115,27 +100,22 @@ def verify_code(request):
         )
         if not item:
             return err("Код не найден. Запросите новый.")
-        # проверка соответствия и срока
         if getattr(item, "code", None) != code:
             return err("Неверный код")
         if hasattr(item, "is_valid") and not item.is_valid():
             return err("Код истёк. Запросите новый.")
 
         with transaction.atomic():
-            # Создание пользователя (idempotent)
             user, created = User.objects.get_or_create(
                 username=email, defaults={"email": email}
             )
             if created:
-                user.first_name = (item.extra or {}).get("name", "")
-                # Пароль положили хэшем в extra.password_hash при создании EmailCode
-                user.password = (item.extra or {}).get("password_hash", make_password(None))
+                extra = item.extra or {}
+                user.first_name = extra.get("name", "")
+                user.password = extra.get("password_hash", make_password(None))
                 user.save()
 
-            # Профиль существует — ок; нет — создадим
             _get_profile(user, create=True)
-
-            # Помечаем код использованным
             item.used = True
             item.save(update_fields=["used"])
 
@@ -143,23 +123,19 @@ def verify_code(request):
         return ok(need_avatar=_need_avatar(user))
 
     except Exception:
-        log.exception("verify_code failed for %s", email)
+        log.exception("verify_code failed")
         return err("Не удалось подтвердить код. Попробуйте ещё раз.", 500)
 
 
 @require_POST
 def login_view(request):
-    """
-    POST: email, password
-    Классический логин.
-    """
-    email = (request.POST.get("email") or "").strip().lower()
-    password = request.POST.get("password") or ""
-
-    if not (email and password):
-        return err("Укажите e-mail и пароль")
-
+    """POST: email, password — классический вход."""
     try:
+        email = (request.POST.get("email") or "").strip().lower()
+        password = request.POST.get("password") or ""
+        if not (email and password):
+            return err("Укажите e-mail и пароль")
+
         user = authenticate(request, username=email, password=password)
         if not user:
             return err("Неверная пара логин/пароль", 401)
@@ -167,18 +143,15 @@ def login_view(request):
         login(request, user)
         return ok(need_avatar=_need_avatar(user))
     except Exception:
-        log.exception("login_view failed for %s", email)
+        log.exception("login_view failed")
         return err("Ошибка входа. Попробуйте ещё раз.", 500)
 
 
 def me(request):
-    """
-    Текущий пользователь.
-    """
+    """Текущий пользователь (всегда JSON, даже при сбое)."""
     try:
         if not request.user.is_authenticated:
             return JsonResponse({"authenticated": False})
-
         user = request.user
         prof = _get_profile(user, create=False)
         avatar_url = ""
@@ -187,15 +160,12 @@ def me(request):
                 avatar_url = prof.avatar.url
             except Exception:
                 avatar_url = ""
-
-        return JsonResponse(
-            {
-                "authenticated": True,
-                "email": user.email or user.username,
-                "name": user.first_name,
-                "avatar_url": avatar_url,
-            }
-        )
+        return JsonResponse({
+            "authenticated": True,
+            "email": user.email or user.username,
+            "name": user.first_name,
+            "avatar_url": avatar_url,
+        })
     except Exception:
         log.exception("me endpoint failed")
         return JsonResponse({"authenticated": False})
@@ -203,21 +173,16 @@ def me(request):
 
 @require_POST
 def upload_avatar(request):
-    """
-    POST: avatar (file)
-    Загрузка/обновление аватара.
-    """
+    """POST: avatar — загрузка аватара (контролируемые ошибки)."""
     if not request.user.is_authenticated:
         return err("Требуется вход", 401)
-
     file = request.FILES.get("avatar")
     if not file:
         return err("Файл не передан")
-
     try:
         prof = _get_profile(request.user, create=True)
         prof.avatar.save(file.name, file, save=True)
         return ok()
     except Exception:
-        log.exception("upload_avatar failed for user %s", request.user.pk)
+        log.exception("upload_avatar failed")
         return err("Не удалось сохранить файл. Попробуйте позже.", 500)
