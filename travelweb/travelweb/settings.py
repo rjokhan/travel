@@ -2,9 +2,12 @@
 from pathlib import Path
 import os
 
-# ========== БАЗА ==========
+# ---- env ----
+from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 
+# ========== БАЗА ==========
 # Не хардкодь ключ в проде: можно положить в .env (переменная SECRET_KEY)
 SECRET_KEY = os.getenv(
     "SECRET_KEY",
@@ -16,7 +19,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = [
     "travel.ayolclub.uz",
-    ".ayolclub.uz",   # разрешим любые поддомены, на всякий (www, travel1 и т.д.)
+    ".ayolclub.uz",   # разрешим любые поддомены (www и т.п.)
     "localhost",
     "127.0.0.1",
 ]
@@ -28,7 +31,6 @@ CSRF_TRUSTED_ORIGINS = [
     "https://www.ayolclub.uz",
 ]
 
-
 # Если за Nginx/проксей — говорим Django, что клиент за HTTPS
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -39,7 +41,7 @@ CSRF_COOKIE_SECURE = True
 # ========== ПРИЛОЖЕНИЯ ==========
 INSTALLED_APPS = [
     "jazzmin",                 # всегда первым
-    "fontawesomefree",         # ← добавь это
+    "fontawesomefree",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -105,14 +107,10 @@ USE_I18N = True
 USE_TZ = True
 
 # ========== СТАТИКА/МЕДИА ==========
-# URL’ы
 STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 
-# Откуда collectstatic соберёт файлы (если есть папка static в проекте)
-STATICFILES_DIRS = [BASE_DIR / "static", BASE_DIR / "staticfiles",]
-
-# Куда collectstatic складывает итог (раздаёт Nginx)
+STATICFILES_DIRS = [BASE_DIR / "static", BASE_DIR / "staticfiles"]
 STATIC_ROOT = Path("/var/www/travel_staticfiles")
 MEDIA_ROOT = Path("/var/www/travel_media")
 
@@ -124,23 +122,18 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "profile"
 LOGOUT_REDIRECT_URL = "login"
 
-
 # ========== EMAIL (для отправки кода) ==========
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND",
-    "django.core.mail.backends.smtp.EmailBackend"
+    "django.core.mail.backends.smtp.EmailBackend",
 )
 EMAIL_HOST = os.getenv("EMAIL_HOST", "in-v3.mailjet.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-DEFAULT_FROM_EMAIL = os.getenv(
-    "DEFAULT_FROM_EMAIL",
-    "no-reply@travel.ayolclub.uz"
-)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@travel.ayolclub.uz")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
-
 
 # ========== JAZZMIN ==========
 JAZZMIN_SETTINGS = {
@@ -154,7 +147,7 @@ JAZZMIN_SETTINGS = {
     "login_logo": "admin/brand/logo-mark.svg",
     "login_logo_dark": "admin/brand/logo-white.svg",
 
-    "search_model": ["travelapp.Trip", "travelapp.Country", "travelapp.City"],
+    "search_model": ["travelapp.Trip", "travelapp.Country"],
     "user_avatar": None,
 
     "topmenu_links": [
@@ -172,7 +165,6 @@ JAZZMIN_SETTINGS = {
         "auth.group": "fas fa-users",
         "travelapp": "fas fa-route",
         "travelapp.country": "fas fa-flag",
-        "travelapp.city": "fas fa-city",
         "travelapp.trip": "fas fa-suitcase-rolling",
     },
 
