@@ -6,4 +6,6 @@ app_name = "accounts"
 
 urlpatterns = [
     path("telegram/callback/", views.telegram_callback, name="telegram_callback"),
+    path("me/", views.me, name="me"),          
+    path("upload-avatar/", views.upload_avatar, name="upload_avatar"),
 ]
