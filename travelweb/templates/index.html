@@ -209,107 +209,149 @@
 </style>
 
   <!-- ваш общий скрипт проекта (погода/поиск/и т.д.) -->
-  <script src="{% static 'js/script.js' %}?v=2025-08-21-1"></script>
+ <script>
+(function(){
+  const $  = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const show = el => el && el.classList.remove('hidden');
+  const hide = el => el && el.classList.add('hidden');
 
-  <!-- === TG AUTH FLOW === -->
-  <script>
-  (function(){
-    const $  = s => document.querySelector(s);
-    const $$ = s => Array.from(document.querySelectorAll(s));
-    const show = el => el && el.classList.remove('hidden');
-    const hide = el => el && el.classList.add('hidden');
+  const tgModal     = $('#authTgModal');
+  const avatarModal = $('#avatarModal');
 
-    const tgModal    = $('#authTgModal');
-    const avatarModal= $('#avatarModal');
+  function getCookie(name){
+    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return m ? m.pop() : '';
+  }
+  const csrftoken = getCookie('csrftoken');
 
-    // CSRF
-    function getCookie(name){
-      const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-      return m ? m.pop() : '';
-    }
-    const csrftoken = getCookie('csrftoken');
+  async function getJSON(url){
+    const r = await fetch(url, { credentials: 'same-origin' });
+    return r.json();
+  }
+  async function postForm(url, fd){
+    const r = await fetch(url, {
+      method:'POST',
+      body: fd,
+      credentials:'same-origin',
+      headers:{'X-CSRFToken': csrftoken},
+    });
+    const ok = r.ok;
+    let data = {};
+    try{ data = await r.json(); }catch{}
+    if(!ok) throw new Error(data.message || ('HTTP ' + r.status));
+    return data;
+  }
 
-    async function getJSON(url){
-      const r = await fetch(url, { credentials: 'same-origin' });
-      return r.json();
-    }
-    async function postForm(url, fd){
-      const r = await fetch(url, {
-        method:'POST',
-        body: fd,
-        credentials:'same-origin',
-        headers:{'X-CSRFToken': csrftoken},
-      });
-      const ok = r.ok;
-      let data = {};
-      try{ data = await r.json(); }catch{}
-      if(!ok) throw new Error(data.message || ('HTTP ' + r.status));
-      return data;
-    }
+  // === главное: проверяем /auth/me/ и закрываем модалки корректно ===
+  async function refreshAuthUI(){
+    try{
+      const me = await getJSON('/auth/me/');
+      if (me.authenticated){
+        // скрыть TG попап
+        hide(tgModal);
 
-    // Открыть модал входа, если не авторизованы
-    (async ()=>{
-      try{
-        const me = await getJSON('/auth/me/');
-        if(me.authenticated){
-          // Навбар-аватар
-          if(me.avatar_url){
-            const navAva = $('#navAvatar');
-            if (navAva) {
-              navAva.innerHTML =
-                `<img src="${me.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
-            }
-          } else {
-            // нет аватара — попросим загрузить
-            show(avatarModal);
+        // аватар в табе
+        if(me.avatar_url){
+          const navAva = $('#navAvatar');
+          if (navAva) {
+            navAva.innerHTML =
+              `<img src="${me.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
           }
         } else {
-          show(tgModal);
+          // нет аватара — попросим загрузить, если ещё не просили
+          if (avatarModal && avatarModal.classList.contains('hidden')) {
+            show(avatarModal);
+          }
         }
-      }catch(_){
-        // При ошибке сети всё равно предложим войти
-        show(tgModal);
+        return true;
+      } else {
+        // не авторизован — показать TG попап
+        if (tgModal && tgModal.classList.contains('hidden')) show(tgModal);
+        return false;
       }
-    })();
+    }catch(_){
+      // сеть/сервер недоступны — ничего критичного
+      return false;
+    }
+  }
 
-    // Кнопки закрытия
-    $$('#authTgModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(tgModal)));
-    $$('#avatarModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(avatarModal)));
+  // стартовая проверка
+  refreshAuthUI();
 
-    // Отправка аватара
-    const formAvatar = $('#formAvatar');
-    formAvatar?.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const fd = new FormData(formAvatar);
-      const file = fd.get('avatar');
-      if(!(file && ['image/jpeg','image/png','image/webp'].includes(file.type))){
-        alert('Допустимы JPG/PNG/WebP'); return;
-      }
-      if(file.size > 5*1024*1024){
-        alert('Файл слишком большой (макс 5MB)'); return;
-      }
-      const btn = formAvatar.querySelector('button[type="submit"]');
-      if (btn){ btn.dataset._text = btn.textContent; btn.disabled = true; btn.textContent = 'Загрузка…'; }
-      try{
-        const data = await postForm('/auth/upload-avatar/', fd);
-        if(!data.successful){ alert(data.message||'Ошибка'); return; }
-        hide(avatarModal);
-        location.reload();
-      }catch(err){
-        alert(err.message || 'Сеть/сервер недоступны');
-      }finally{
-        if (btn){ btn.disabled = false; btn.textContent = btn.dataset._text || 'Сохранить'; }
-      }
-    });
+  // подстраховка: если пользователь логинится в новом окне/приложении Telegram,
+  // через несколько секунд статус изменится — опрашиваем кратко
+  let tries = 0;
+  const timer = setInterval(async () => {
+    tries += 1;
+    const ok = await refreshAuthUI();
+    if (ok || tries > 20){ // ~20 раз * 1.5s ≈ 30c
+      clearInterval(timer);
+    }
+  }, 1500);
 
-    // ESC закрывает модалки
-    document.addEventListener('keydown', (e)=>{
-      if(e.key === 'Escape'){
-        if(!tgModal?.classList.contains('hidden')) hide(tgModal);
-        if(!avatarModal?.classList.contains('hidden')) hide(avatarModal);
-      }
-    });
-  })();
-  </script>
+  // Кнопки закрытия
+  $$('#authTgModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(tgModal)));
+  $$('#avatarModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(avatarModal)));
+
+  // Отправка аватара
+  const formAvatar = $('#formAvatar');
+  formAvatar?.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(formAvatar);
+    const file = fd.get('avatar');
+    if(!(file && ['image/jpeg','image/png','image/webp'].includes(file.type))){
+      alert('Допустимы JPG/PNG/WebP'); return;
+    }
+    if(file.size > 5*1024*1024){
+      alert('Файл слишком большой (макс 5MB)'); return;
+    }
+    const btn = formAvatar.querySelector('button[type="submit"]');
+    if (btn){ btn.dataset._text = btn.textContent; btn.disabled = true; btn.textContent = 'Загрузка…'; }
+    try{
+      const data = await postForm('/auth/upload-avatar/', fd);
+      if(!data.successful){ alert(data.message||'Ошибка'); return; }
+      hide(avatarModal);
+      // после апдейта — сразу обновим UI
+      refreshAuthUI();
+    }catch(err){
+      alert(err.message || 'Сеть/сервер недоступны');
+    }finally{
+      if (btn){ btn.disabled = false; btn.textContent = btn.dataset._text || 'Сохранить'; }
+    }
+  });
+
+  // ESC закрывает модалки
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){
+      if(!tgModal?.classList.contains('hidden')) hide(tgModal);
+      if(!avatarModal?.classList.contains('hidden')) hide(avatarModal);
+    }
+  });
+})();
+</script>
+
+  <script async src="https://telegram.org/js/telegram-widget.js?22"
+        data-telegram-login="{{ TELEGRAM_BOT_NAME|default:'travel_ayolclub_bot' }}"
+        data-size="large"
+        data-userpic="false"
+        data-auth-url="/auth/telegram/callback/?next={{ request.path }}"
+        data-request-access="write"
+        data-onauth="onTelegramAuth(user)"></script>
+
+<script>
+  // Этот хук срабатывает мгновенно при авторизации в виджете.
+  // Мы просто обновим страницу (попадём на /auth/telegram/callback/, затем вернёмся на страницу).
+  function onTelegramAuth(user){
+    try { console.debug('TG user:', user); } catch(e){}
+    // подстраховка: если Telegram почему-то не сделал редирект по data-auth-url,
+    // форснём ourselves:
+    if (!location.href.includes('/auth/telegram/callback/')) {
+      const p = new URLSearchParams(user).toString();
+      location.href = '/auth/telegram/callback/?' + p + '&next=' + encodeURIComponent(location.pathname);
+    }
+  }
+</script>
+
 </body>
 </html>
