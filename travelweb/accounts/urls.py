@@ -1,11 +1,10 @@
-# travelweb/accounts/urls.py
 from django.urls import path
-from . import views  # у тебя telegram_callback уже в accounts/views.py
+from . import views
 
 app_name = "accounts"
 
 urlpatterns = [
     path("telegram/callback/", views.telegram_callback, name="telegram_callback"),
-    path("me/", views.me, name="me"),          
-    path("upload-avatar/", views.upload_avatar, name="upload_avatar"),
+    path("me/", views.me, name="me"),                     # ✅ нужно
+    path("upload-avatar/", views.upload_avatar, name="upload_avatar"),  # ✅ тоже нужно
 ]
