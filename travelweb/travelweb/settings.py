@@ -39,7 +39,6 @@ CSRF_COOKIE_SAMESITE = "Lax"
 # ========= APPS =========
 INSTALLED_APPS = [
     "jazzmin",
-    "fontawesomefree",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
