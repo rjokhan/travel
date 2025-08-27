@@ -125,6 +125,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "profile"
 LOGOUT_REDIRECT_URL = "login"
+TELEGRAM_LOGIN_SECRET = os.getenv("TELEGRAM_LOGIN_SECRET", "")
+
 
 # ========= EMAIL =========
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")

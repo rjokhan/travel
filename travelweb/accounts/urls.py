@@ -13,4 +13,8 @@ urlpatterns = [
 
     # загрузка аватарки
     path("upload-avatar/", views.upload_avatar, name="upload_avatar"),
+
+    path("tg/create/", tg.create_request, name="tg_create"),
+    path("tg/status/", tg.check_status, name="tg_status"),
+    path("tg/confirm/", tg.bot_confirm, name="tg_confirm"),
 ]
