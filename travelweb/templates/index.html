@@ -144,34 +144,35 @@
     </div>
   </div>
 
-<!-- ===== AUTH: TELEGRAM ONLY ===== -->
-<div id="authTgModal" class="ac-modal hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-  <div class="ac-modal__inner">
-    <button class="ac-modal__close" data-close>&times;</button>
+  <!-- ===== AUTH: TELEGRAM ONLY ===== -->
+  <div id="authTgModal" class="ac-modal hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="ac-modal__inner">
+      <button class="ac-modal__close" data-close>&times;</button>
 
-    <h3 id="authTitle" class="ac-title">Войдите через Telegram</h3>
-    <p class="ac-sub">Нажмите кнопку ниже и подтвердите вход в Telegram.</p>
+      <h3 id="authTitle" class="ac-title">Войдите через Telegram</h3>
+      <p class="ac-sub">Нажмите кнопку ниже и подтвердите вход в Telegram.</p>
 
-    <div class="ac-tg">
-      <!-- TELEGRAM LOGIN WIDGET -->
-      <script async src="https://telegram.org/js/telegram-widget.js?22"
-              data-telegram-login="{{ TELEGRAM_BOT_NAME|default:'travel_ayolclub_bot' }}"
-              data-size="large"
-              data-userpic="false"
-              data-auth-url="/auth/telegram/callback/?next={{ request.path }}"
-              data-request-access="write"></script>
+      <div class="ac-tg">
+        <!-- ЕДИНСТВЕННЫЙ ВИДЖЕТ Telegram (есть data-onauth) -->
+        <script async src="https://telegram.org/js/telegram-widget.js?22"
+                data-telegram-login="{{ TELEGRAM_BOT_NAME|default:'travel_ayolclub_bot' }}"
+                data-size="large"
+                data-userpic="false"
+                data-auth-url="/auth/telegram/callback/?next={{ request.path }}"
+                data-request-access="write"
+                data-onauth="onTelegramAuth(user)"></script>
+      </div>
+
+      <div class="ac-or"><span>если кнопка не работает</span></div>
+      <div class="ac-actions">
+        <a class="btn btn-outline"
+           href="https://t.me/{{ TELEGRAM_BOT_NAME|default:'travel_ayolclub_bot' }}?start=login"
+           target="_blank" rel="noopener">Открыть бота в Telegram</a>
+      </div>
+
+      <p class="ac-hint">После подтверждения вы вернётесь на сайт автоматически.</p>
     </div>
-
-    <div class="ac-or"><span>если кнопка не работает</span></div>
-    <div class="ac-actions">
-      <a class="btn btn-outline"
-         href="https://t.me/{{ TELEGRAM_BOT_NAME|default:'travel_ayolclub_bot' }}?start=login"
-         target="_blank" rel="noopener">Открыть бота в Telegram</a>
-    </div>
-
-    <p class="ac-hint">После подтверждения вы вернётесь на сайт автоматически.</p>
   </div>
-</div>
 
   <!-- ===== AVATAR MODAL ===== -->
   <div id="avatarModal" class="ac-modal hidden" role="dialog" aria-modal="true" aria-labelledby="avatarTitle">
@@ -190,165 +191,142 @@
   </div>
 
   <!-- Стили модалок -->
-<style>
-  .ac-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:9999}
-  .ac-modal.hidden{display:none}
-  .ac-modal__inner{position:relative;background:#202530;border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 16px 36px rgba(0,0,0,.45);padding:18px;min-width:320px;max-width:440px;width:92%;color:#fff}
-  .ac-modal__close{position:absolute;right:10px;top:10px;background:transparent;border:none;color:#fff;font-size:22px;cursor:pointer}
-  .ac-title{font-size:18px;margin:0 0 6px}
-  .ac-sub{opacity:.8;margin:0 0 12px;font-size:14px}
-  .ac-hint{opacity:.65;margin:8px 0 0;font-size:12px}
-  .ac-or{display:flex;align-items:center;gap:10px;opacity:.6;margin:12px 0}
-  .ac-or:before,.ac-or:after{content:"";height:1px;background:rgba(255,255,255,.2);flex:1}
-  .ac-actions{display:flex;gap:10px;justify-content:center;margin:8px 0 0}
-  .btn{padding:9px 14px;border-radius:10px;font-size:14px;cursor:pointer;border:1px solid transparent}
-  .btn-primary{background:#be0036;color:#fff;border-color:#be0036}
-  .btn-outline{background:transparent;color:#fff;border-color:rgba(255,255,255,.3)}
-  .btn-ghost{background:transparent;color:#fff;border-color:transparent;opacity:.9}
-  .ac-tg{display:flex;justify-content:center}
-</style>
+  <style>
+    .ac-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .ac-modal.hidden{display:none}
+    .ac-modal__inner{position:relative;background:#202530;border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 16px 36px rgba(0,0,0,.45);padding:18px;min-width:320px;max-width:440px;width:92%;color:#fff}
+    .ac-modal__close{position:absolute;right:10px;top:10px;background:transparent;border:none;color:#fff;font-size:22px;cursor:pointer}
+    .ac-title{font-size:18px;margin:0 0 6px}
+    .ac-sub{opacity:.8;margin:0 0 12px;font-size:14px}
+    .ac-hint{opacity:.65;margin:8px 0 0;font-size:12px}
+    .ac-or{display:flex;align-items:center;gap:10px;opacity:.6;margin:12px 0}
+    .ac-or:before,.ac-or:after{content:"";height:1px;background:rgba(255,255,255,.2);flex:1}
+    .ac-actions{display:flex;gap:10px;justify-content:center;margin:8px 0 0}
+    .btn{padding:9px 14px;border-radius:10px;font-size:14px;cursor:pointer;border:1px solid transparent}
+    .btn-primary{background:#be0036;color:#fff;border-color:#be0036}
+    .btn-outline{background:transparent;color:#fff;border-color:rgba(255,255,255,.3)}
+    .btn-ghost{background:transparent;color:#fff;border-color:transparent;opacity:.9}
+    .ac-tg{display:flex;justify-content:center}
+  </style>
 
+  <!-- ===== JS: auth + avatar + небольшие утилиты ===== -->
+  <script>
+  (function(){
+    const BOT_NAME = "{{ TELEGRAM_BOT_NAME|default:'travel_ayolclub_bot' }}";
+    const NEXT_PATH = "{{ request.path|escapejs }}";
 
-<script>
-(function(){
-  // ==== SETTINGS FROM DJANGO ====
-  const BOT_NAME = "{{ TELEGRAM_BOT_NAME|default:'travel_ayolclub_bot' }}";
-  const NEXT_PATH = "{{ request.path|escapejs }}";
+    const $  = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const show = el => el && el.classList.remove('hidden');
+    const hide = el => el && el.classList.add('hidden');
 
-  // ==== DOM SHORTCUTS ====
-  const $  = s => document.querySelector(s);
-  const $$ = s => Array.from(document.querySelectorAll(s));
-  const show = el => el && el.classList.remove('hidden');
-  const hide = el => el && el.classList.add('hidden');
+    const tgModal    = $('#authTgModal');
+    const avatarModal= $('#avatarModal');
 
-  const tgModal      = $('#authTgModal');
-  const avatarModal  = $('#avatarModal');
-  const tgMountPoint = $('#authTgModal .ac-tg'); // куда вставим виджет
+    // CSRF helpers
+    function getCookie(name){
+      const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+      return m ? m.pop() : '';
+    }
+    const csrftoken = getCookie('csrftoken');
 
-  // ==== CSRF / FETCH HELPERS ====
-  function getCookie(name){
-    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-    return m ? m.pop() : '';
-  }
-  const csrftoken = getCookie('csrftoken');
+    async function getJSON(url){
+      const r = await fetch(url, { credentials:'same-origin' });
+      return r.json();
+    }
+    async function postForm(url, fd){
+      const r = await fetch(url, {
+        method: 'POST',
+        body: fd,
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrftoken },
+      });
+      const ok = r.ok;
+      let data = {};
+      try { data = await r.json(); } catch {}
+      if (!ok) throw new Error(data.message || ('HTTP ' + r.status));
+      return data;
+    }
 
-  async function getJSON(url){
-    const r = await fetch(url, { credentials:'same-origin' });
-    return r.json();
-  }
-  async function postForm(url, fd){
-    const r = await fetch(url, {
-      method:'POST',
-      body: fd,
-      credentials:'same-origin',
-      headers:{ 'X-CSRFToken': csrftoken },
-    });
-    const ok = r.ok;
-    let data = {};
-    try { data = await r.json(); } catch {}
-    if (!ok) throw new Error(data.message || ('HTTP ' + r.status));
-    return data;
-  }
-
-  // ==== AUTH STATE/UI ====
-  async function refreshAuthUI(){
-    try{
-      const me = await getJSON('/auth/me/');
-      if (me.authenticated){
-        hide(tgModal);
-        if (me.avatar_url){
-          const navAva = $('#navAvatar');
-          if (navAva){
-            navAva.innerHTML =
-              `<img src="${me.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
+    // Обновить UI согласно состоянию сессии
+    async function refreshAuthUI(){
+      try{
+        const me = await getJSON('/auth/me/');
+        if (me.authenticated){
+          hide(tgModal);
+          if (me.avatar_url){
+            const navAva = $('#navAvatar');
+            if (navAva){
+              navAva.innerHTML =
+                `<img src="${me.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
+            }
+          }else{
+            if (avatarModal && avatarModal.classList.contains('hidden')) show(avatarModal);
           }
+          return true;
         }else{
-          if (avatarModal && avatarModal.classList.contains('hidden')) show(avatarModal);
+          if (tgModal && tgModal.classList.contains('hidden')) show(tgModal);
+          return false;
         }
-        return true;
-      }else{
-        if (tgModal && tgModal.classList.contains('hidden')) show(tgModal);
-        return false;
+      }catch{ return false; }
+    }
+
+    // стартовая проверка
+    refreshAuthUI();
+
+    // короткий поллинг (подхватить сессию после авторизации в приложении TG)
+    let tries = 0;
+    const poll = setInterval(async () => {
+      tries += 1;
+      const ok = await refreshAuthUI();
+      if (ok || tries > 20) clearInterval(poll); // до ~30 c
+    }, 1500);
+
+    // кнопки закрытия / ESC
+    $$('#authTgModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(tgModal)));
+    $$('#avatarModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(avatarModal)));
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape'){
+        if(!tgModal?.classList.contains('hidden')) hide(tgModal);
+        if(!avatarModal?.classList.contains('hidden')) hide(avatarModal);
       }
-    }catch(_){
-      return false;
-    }
-  }
+    });
 
-  // стартовая проверка
-  refreshAuthUI();
+    // загрузка аватара
+    const formAvatar = $('#formAvatar');
+    formAvatar?.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(formAvatar);
+      const file = fd.get('avatar');
+      if(!(file && ['image/jpeg','image/png','image/webp'].includes(file.type))){
+        alert('Допустимы JPG/PNG/WebP'); return;
+      }
+      if(file.size > 5*1024*1024){ alert('Файл слишком большой (макс 5MB)'); return; }
 
-  // короткий поллинг: подхватить сессию, если авторизация прошла в приложении TG
-  let tries = 0;
-  const poll = setInterval(async () => {
-    tries += 1;
-    const ok = await refreshAuthUI();
-    if (ok || tries > 20) clearInterval(poll); // до ~30 c
-  }, 1500);
+      const btn = formAvatar.querySelector('button[type="submit"]');
+      if (btn){ btn.dataset._text = btn.textContent; btn.disabled = true; btn.textContent = 'Загрузка…'; }
+      try{
+        const data = await postForm('/auth/upload-avatar/', fd);
+        if(!data.successful){ alert(data.message||'Ошибка'); return; }
+        hide(avatarModal);
+        refreshAuthUI();
+      }catch(err){
+        alert(err.message || 'Сеть/сервер недоступны');
+      }finally{
+        if (btn){ btn.disabled = false; btn.textContent = btn.dataset._text || 'Сохранить'; }
+      }
+    });
 
-  // ==== AVATAR UPLOAD ====
-  const formAvatar = $('#formAvatar');
-  formAvatar?.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const fd = new FormData(formAvatar);
-    const file = fd.get('avatar');
-    if(!(file && ['image/jpeg','image/png','image/webp'].includes(file.type))){
-      alert('Допустимы JPG/PNG/WebP'); return;
-    }
-    if(file.size > 5*1024*1024){ alert('Файл слишком большой (макс 5MB)'); return; }
-
-    const btn = formAvatar.querySelector('button[type="submit"]');
-    if (btn){ btn.dataset._text = btn.textContent; btn.disabled = true; btn.textContent = 'Загрузка…'; }
-    try{
-      const data = await postForm('/auth/upload-avatar/', fd);
-      if(!data.successful){ alert(data.message||'Ошибка'); return; }
-      hide(avatarModal);
-      refreshAuthUI();
-    }catch(err){
-      alert(err.message || 'Сеть/сервер недоступны');
-    }finally{
-      if (btn){ btn.disabled = false; btn.textContent = btn.dataset._text || 'Сохранить'; }
-    }
-  });
-
-  // ==== CLOSE BUTTONS / ESC ====
-  $$('#authTgModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(tgModal)));
-  $$('#avatarModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(avatarModal)));
-  document.addEventListener('keydown', (e)=>{
-    if(e.key === 'Escape'){
-      if(!tgModal?.classList.contains('hidden')) hide(tgModal);
-      if(!avatarModal?.classList.contains('hidden')) hide(avatarModal);
-    }
-  });
-
-  // ==== TELEGRAM WIDGET HOOK ====
-  // Глобальная функция — её вызовет виджет
-  window.onTelegramAuth = function(user){
-    try{ console.debug('TG user:', user); }catch{}
-    // Страховка: если вдруг не сработал data-auth-url — редиректим сами
-    const hasCallback = location.pathname.startsWith('/auth/telegram/callback/');
-    if (!hasCallback){
-      const p = new URLSearchParams(user).toString();
-      location.href = '/auth/telegram/callback/?' + p + '&next=' + encodeURIComponent(NEXT_PATH);
-    }
-  };
-
-  // Динамически подключаем виджет (вместо отдельного <script …>)
-  if (tgMountPoint){
-    const sc = document.createElement('script');
-    sc.async = true;
-    sc.src = 'https://telegram.org/js/telegram-widget.js?22';
-    sc.setAttribute('data-telegram-login', BOT_NAME);
-    sc.setAttribute('data-size', 'large');
-    sc.setAttribute('data-userpic', 'false');
-    sc.setAttribute('data-auth-url', '/auth/telegram/callback/?next=' + encodeURIComponent(NEXT_PATH));
-    sc.setAttribute('data-request-access', 'write');
-    sc.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    tgMountPoint.appendChild(sc);
-  }
-})();
-</script>
-
-
+    // Хук, который вызовет виджет сразу после авторизации
+    window.onTelegramAuth = function(user){
+      try { console.debug('TG user:', user); } catch {}
+      // подстраховка: если виджет сам не перешёл по data-auth-url, форсируем
+      if (!location.pathname.startsWith('/auth/telegram/callback/')) {
+        const p = new URLSearchParams(user).toString();
+        location.href = '/auth/telegram/callback/?' + p + '&next=' + encodeURIComponent(NEXT_PATH);
+      }
+    };
+  })();
+  </script>
 </body>
 </html>
