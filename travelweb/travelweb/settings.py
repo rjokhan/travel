@@ -140,8 +140,8 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # добавьте в .env:
 # TELEGRAM_BOT_TOKEN=123456:ABCDEF...
 # TELEGRAM_BOT_NAME=@YourBot
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8174443274:AAEWHB1BreYgWWSx5Ndd_jYG9lx2UekE-X4")
-TELEGRAM_BOT_NAME = os.getenv("TELEGRAM_BOT_NAME", "travel_ayolclub_bot").lstrip("@")  # без @
+TELEGRAM_BOT_TOKEN = "8174443274:AAEWHB1BreYgWWSx5Ndd_jYG9lx2UekE-X4"
+TELEGRAM_BOT_NAME  = "travel_ayolclub_bot"  # без @
 
 # ========= JAZZMIN =========
 JAZZMIN_SETTINGS = {
