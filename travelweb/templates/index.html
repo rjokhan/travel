@@ -17,11 +17,7 @@
   <div class="bg-circle" aria-hidden="true">
     <video id="bgCircleVideo"
            class="bg-circle__video"
-           autoplay
-           muted
-           loop
-           playsinline
-           preload="metadata"
+           autoplay muted loop playsinline preload="metadata"
            poster="{% static 'img/bg-poster.jpg' %}">
       <source src="{% static 'video/bg-hero.mp4' %}" type="video/mp4">
     </video>
@@ -30,10 +26,7 @@
   <!-- Шапка -->
   <header class="topbar">
     <div class="container">
-      <div class="greet">
-        <div id="hi" class="hi">Салом, меҳмон 👋</div>
-      </div>
-
+      <div class="greet"><div id="hi" class="hi">Салом, меҳмон 👋</div></div>
       <div class="top-actions">
         <div class="weather" title="Local weather">
           <div class="icon" aria-hidden="true"></div>
@@ -77,26 +70,21 @@
     <!-- TRIPS SLIDER -->
     <section class="trips">
       <h2 class="trips-title">Popular trips</h2>
-
       <div class="trip-scroller" id="tripScroller" aria-label="Trip slider">
         {% for t in trips %}
         <article class="trip-card theme-{{ t.theme }}">
           <div class="trip-pill" aria-hidden="true"></div>
           <button class="trip-fav" aria-label="Add to favorites"></button>
-
           <div class="trip-top">
             <span class="flag">
               <img src="https://flagcdn.com/24x18/{{ t.country.iso2|lower }}.png" width="24" height="18" alt="">
               {{ t.country.name|upper }}
             </span>
           </div>
-
           <h3 class="trip-name">{{ t.title_full }}</h3>
-
           <div class="trip-meta">
             <div class="meta-col">
-              <div class="cal">
-                <i class="cal-ic" aria-hidden="true"></i>
+              <div class="cal"><i class="cal-ic" aria-hidden="true"></i>
                 <span class="date">{{ t.date_range_str }}</span>
               </div>
               <div class="faces">
@@ -107,13 +95,10 @@
                 <span class="more">+{{ t.booked }}</span>
               </div>
             </div>
-
             <a href="{% url 'travelapp:trip_detail' t.slug %}" class="trip-go" aria-label="Open trip"></a>
           </div>
         </article>
-        {% empty %}
-          <p style="opacity:.7">Пока нет опубликованных туров.</p>
-        {% endfor %}
+        {% empty %}<p style="opacity:.7">Пока нет опубликованных туров.</p>{% endfor %}
       </div>
     </section>
   </main>
@@ -153,12 +138,12 @@
       <p class="ac-sub">Нажмите кнопку ниже и подтвердите вход в Telegram.</p>
 
       <div class="ac-tg">
-        <!-- ЕДИНСТВЕННЫЙ ВИДЖЕТ Telegram (есть data-onauth) -->
+        <!-- Единственный виджет. ВАЖНО: абсолютный data-auth-url -->
         <script async src="https://telegram.org/js/telegram-widget.js?22"
                 data-telegram-login="{{ TELEGRAM_BOT_NAME|default:'travel_ayolclub_bot' }}"
                 data-size="large"
                 data-userpic="false"
-                data-auth-url="/auth/telegram/callback/?next={{ request.path }}"
+                data-auth-url="https://{{ request.get_host }}{% url 'accounts:telegram_callback' %}?next={{ request.path }}"
                 data-request-access="write"
                 data-onauth="onTelegramAuth(user)"></script>
       </div>
@@ -209,11 +194,11 @@
     .ac-tg{display:flex;justify-content:center}
   </style>
 
-  <!-- ===== JS: auth + avatar + небольшие утилиты ===== -->
+  <!-- JS: auth + avatar + fallback редирект -->
   <script>
   (function(){
-    const BOT_NAME = "{{ TELEGRAM_BOT_NAME|default:'travel_ayolclub_bot' }}";
     const NEXT_PATH = "{{ request.path|escapejs }}";
+    const ABS_CALLBACK = "https://{{ request.get_host }}{% url 'accounts:telegram_callback' %}?next={{ request.path|escapejs }}";
 
     const $  = s => document.querySelector(s);
     const $$ = s => Array.from(document.querySelectorAll(s));
@@ -223,7 +208,6 @@
     const tgModal    = $('#authTgModal');
     const avatarModal= $('#avatarModal');
 
-    // CSRF helpers
     function getCookie(name){
       const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
       return m ? m.pop() : '';
@@ -236,94 +220,79 @@
     }
     async function postForm(url, fd){
       const r = await fetch(url, {
-        method: 'POST',
-        body: fd,
-        credentials: 'same-origin',
-        headers: { 'X-CSRFToken': csrftoken },
+        method:'POST', body:fd, credentials:'same-origin',
+        headers:{ 'X-CSRFToken': csrftoken },
       });
-      const ok = r.ok;
-      let data = {};
-      try { data = await r.json(); } catch {}
-      if (!ok) throw new Error(data.message || ('HTTP ' + r.status));
+      const ok = r.ok; let data={}; try{ data = await r.json(); }catch{}
+      if(!ok) throw new Error(data.message || ('HTTP ' + r.status));
       return data;
     }
 
-    // Обновить UI согласно состоянию сессии
     async function refreshAuthUI(){
       try{
         const me = await getJSON('/auth/me/');
-        if (me.authenticated){
+        if(me.authenticated){
           hide(tgModal);
-          if (me.avatar_url){
+          if(me.avatar_url){
             const navAva = $('#navAvatar');
-            if (navAva){
-              navAva.innerHTML =
-                `<img src="${me.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
+            if(navAva){
+              navAva.innerHTML = `<img src="${me.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
             }
-          }else{
-            if (avatarModal && avatarModal.classList.contains('hidden')) show(avatarModal);
+          }else if(avatarModal && avatarModal.classList.contains('hidden')){
+            show(avatarModal);
           }
           return true;
         }else{
-          if (tgModal && tgModal.classList.contains('hidden')) show(tgModal);
+          if(tgModal && tgModal.classList.contains('hidden')) show(tgModal);
           return false;
         }
       }catch{ return false; }
     }
 
-    // стартовая проверка
+    // Первичная проверка + короткий поллинг (до ~30с)
     refreshAuthUI();
-
-    // короткий поллинг (подхватить сессию после авторизации в приложении TG)
     let tries = 0;
-    const poll = setInterval(async () => {
+    const poll = setInterval(async ()=>{
       tries += 1;
       const ok = await refreshAuthUI();
-      if (ok || tries > 20) clearInterval(poll); // до ~30 c
+      if(ok || tries > 20) clearInterval(poll);
     }, 1500);
 
-    // кнопки закрытия / ESC
+    // Закрытие модалок
     $$('#authTgModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(tgModal)));
     $$('#avatarModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(avatarModal)));
-    document.addEventListener('keydown', (e)=>{
-      if(e.key === 'Escape'){
+    document.addEventListener('keydown', e=>{
+      if(e.key==='Escape'){
         if(!tgModal?.classList.contains('hidden')) hide(tgModal);
         if(!avatarModal?.classList.contains('hidden')) hide(avatarModal);
       }
     });
 
-    // загрузка аватара
+    // Загрузка аватара
     const formAvatar = $('#formAvatar');
-    formAvatar?.addEventListener('submit', async (e)=>{
+    formAvatar?.addEventListener('submit', async e=>{
       e.preventDefault();
       const fd = new FormData(formAvatar);
       const file = fd.get('avatar');
-      if(!(file && ['image/jpeg','image/png','image/webp'].includes(file.type))){
-        alert('Допустимы JPG/PNG/WebP'); return;
-      }
+      if(!(file && ['image/jpeg','image/png','image/webp'].includes(file.type))){ alert('Допустимы JPG/PNG/WebP'); return; }
       if(file.size > 5*1024*1024){ alert('Файл слишком большой (макс 5MB)'); return; }
-
       const btn = formAvatar.querySelector('button[type="submit"]');
-      if (btn){ btn.dataset._text = btn.textContent; btn.disabled = true; btn.textContent = 'Загрузка…'; }
+      if(btn){ btn.dataset._text=btn.textContent; btn.disabled=true; btn.textContent='Загрузка…'; }
       try{
         const data = await postForm('/auth/upload-avatar/', fd);
         if(!data.successful){ alert(data.message||'Ошибка'); return; }
         hide(avatarModal);
         refreshAuthUI();
-      }catch(err){
-        alert(err.message || 'Сеть/сервер недоступны');
-      }finally{
-        if (btn){ btn.disabled = false; btn.textContent = btn.dataset._text || 'Сохранить'; }
-      }
+      }catch(err){ alert(err.message||'Сеть/сервер недоступны'); }
+      finally{ if(btn){ btn.disabled=false; btn.textContent=btn.dataset._text||'Сохранить'; } }
     });
 
-    // Хук, который вызовет виджет сразу после авторизации
+    // Хук виджета: страховочный редирект на АБСОЛЮТНЫЙ коллбек
     window.onTelegramAuth = function(user){
-      try { console.debug('TG user:', user); } catch {}
-      // подстраховка: если виджет сам не перешёл по data-auth-url, форсируем
-      if (!location.pathname.startsWith('/auth/telegram/callback/')) {
-        const p = new URLSearchParams(user).toString();
-        location.href = '/auth/telegram/callback/?' + p + '&next=' + encodeURIComponent(NEXT_PATH);
+      try{ console.debug('TG user', user); }catch{}
+      if(!location.href.startsWith(ABS_CALLBACK)){
+        const q = new URLSearchParams(user).toString();
+        location.href = ABS_CALLBACK + (ABS_CALLBACK.includes('?') ? '&' : '?') + q;
       }
     };
   })();
