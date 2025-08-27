@@ -72,11 +72,14 @@ TEMPLATES = [
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
+                # стандартные процессоры Django
+                "django.template.context_processors.debug",
                 "django.template.context_processors.request",
+                "django.template.context_processors.static",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                # чтобы в шаблонах был {{ TELEGRAM_BOT_NAME }} для кнопки логина
-                "travelweb.context_processors.telegram_settings",
+                # ⚠️ УДАЛЕНО: "travelweb.context_processors.telegram_settings"
+                # Добавим снова, когда появится файл travelweb/context_processors.py и функция.
             ],
         },
     },
