@@ -53,10 +53,6 @@ python manage.py migrate --noinput
 log "Собираю статику…"
 python manage.py collectstatic --noinput
 
-# 6) Опционально — компиляция сообщений/локали (раскомментируйте при необходимости)
-# log "Компилирую локали…"
-# python manage.py compilemessages
-
 # 7) Перезапуск сервиса
 log "Перезапускаю systemd сервис: ${SERVICE_NAME}"
 sudo systemctl restart "${SERVICE_NAME}"
