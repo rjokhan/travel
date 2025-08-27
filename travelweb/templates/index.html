@@ -196,106 +196,138 @@
 
   <!-- JS: auth + avatar + fallback редирект -->
   <script>
-  (function(){
-    const NEXT_PATH = "{{ request.path|escapejs }}";
-    const ABS_CALLBACK = "https://{{ request.get_host }}{% url 'accounts:telegram_callback' %}?next={{ request.path|escapejs }}";
+(function(){
+  // ==== SETTINGS FROM DJANGO ====
+  const BOT_NAME  = "{{ TELEGRAM_BOT_NAME|default:'travel_ayolclub_bot' }}";
+  const NEXT_PATH = "{{ request.path|escapejs }}";
+  const CALLBACK_ABS = "https://{{ request.get_host }}{% url 'accounts:telegram_callback' %}?next=" + encodeURIComponent(NEXT_PATH);
 
-    const $  = s => document.querySelector(s);
-    const $$ = s => Array.from(document.querySelectorAll(s));
-    const show = el => el && el.classList.remove('hidden');
-    const hide = el => el && el.classList.add('hidden');
+  // ==== DOM SHORTCUTS ====
+  const $  = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const show = el => el && el.classList.remove('hidden');
+  const hide = el => el && el.classList.add('hidden');
 
-    const tgModal    = $('#authTgModal');
-    const avatarModal= $('#avatarModal');
+  const tgModal      = $('#authTgModal');
+  const avatarModal  = $('#avatarModal');
+  const tgMountPoint = $('#authTgModal .ac-tg'); // контейнер, где рисуем виджет
+  const navAvatar    = $('#navAvatar');
+  const formAvatar   = $('#formAvatar');
 
-    function getCookie(name){
-      const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-      return m ? m.pop() : '';
-    }
-    const csrftoken = getCookie('csrftoken');
+  // ==== CSRF / FETCH HELPERS ====
+  function getCookie(name){
+    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return m ? m.pop() : '';
+  }
+  const csrftoken = getCookie('csrftoken');
 
-    async function getJSON(url){
-      const r = await fetch(url, { credentials:'same-origin' });
-      return r.json();
-    }
-    async function postForm(url, fd){
-      const r = await fetch(url, {
-        method:'POST', body:fd, credentials:'same-origin',
-        headers:{ 'X-CSRFToken': csrftoken },
-      });
-      const ok = r.ok; let data={}; try{ data = await r.json(); }catch{}
-      if(!ok) throw new Error(data.message || ('HTTP ' + r.status));
-      return data;
-    }
+  async function getJSON(url){
+    const r = await fetch(url, { credentials:'same-origin' });
+    return r.json();
+  }
+  async function postForm(url, fd){
+    const r = await fetch(url, {
+      method:'POST',
+      body: fd,
+      credentials:'same-origin',
+      headers:{ 'X-CSRFToken': csrftoken },
+    });
+    const ok = r.ok;
+    let data = {};
+    try { data = await r.json(); } catch {}
+    if (!ok) throw new Error(data.message || ('HTTP ' + r.status));
+    return data;
+  }
 
-    async function refreshAuthUI(){
-      try{
-        const me = await getJSON('/auth/me/');
-        if(me.authenticated){
-          hide(tgModal);
-          if(me.avatar_url){
-            const navAva = $('#navAvatar');
-            if(navAva){
-              navAva.innerHTML = `<img src="${me.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
-            }
-          }else if(avatarModal && avatarModal.classList.contains('hidden')){
-            show(avatarModal);
-          }
-          return true;
-        }else{
-          if(tgModal && tgModal.classList.contains('hidden')) show(tgModal);
-          return false;
+  // ==== AUTH STATE / UI ====
+  async function refreshAuthUI(){
+    try{
+      const me = await getJSON('/auth/me/');
+      if (me.authenticated){
+        hide(tgModal);
+
+        if (me.avatar_url && navAvatar){
+          navAvatar.innerHTML =
+            `<img src="${me.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
         }
-      }catch{ return false; }
+        // Показать загрузку аватара, если его нет
+        if (!me.avatar_url && avatarModal && avatarModal.classList.contains('hidden')){
+          show(avatarModal);
+        }
+        return true;
+      } else {
+        if (tgModal && tgModal.classList.contains('hidden')) show(tgModal);
+        return false;
+      }
+    }catch(_){
+      return false;
     }
+  }
 
-    // Первичная проверка + короткий поллинг (до ~30с)
-    refreshAuthUI();
-    let tries = 0;
-    const poll = setInterval(async ()=>{
-      tries += 1;
-      const ok = await refreshAuthUI();
-      if(ok || tries > 20) clearInterval(poll);
-    }, 1500);
+  // Стартовая проверка
+  refreshAuthUI();
 
-    // Закрытие модалок
-    $$('#authTgModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(tgModal)));
-    $$('#avatarModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(avatarModal)));
-    document.addEventListener('keydown', e=>{
-      if(e.key==='Escape'){
-        if(!tgModal?.classList.contains('hidden')) hide(tgModal);
-        if(!avatarModal?.classList.contains('hidden')) hide(avatarModal);
-      }
-    });
+  // Короткий поллинг, чтобы «подхватить» сессию после подтверждения в Telegram
+  let tries = 0;
+  const pollTimer = setInterval(async () => {
+    tries += 1;
+    const ok = await refreshAuthUI();
+    if (ok || tries > 20) clearInterval(pollTimer); // ~30 секунд максимум
+  }, 1500);
 
-    // Загрузка аватара
-    const formAvatar = $('#formAvatar');
-    formAvatar?.addEventListener('submit', async e=>{
-      e.preventDefault();
-      const fd = new FormData(formAvatar);
-      const file = fd.get('avatar');
-      if(!(file && ['image/jpeg','image/png','image/webp'].includes(file.type))){ alert('Допустимы JPG/PNG/WebP'); return; }
-      if(file.size > 5*1024*1024){ alert('Файл слишком большой (макс 5MB)'); return; }
-      const btn = formAvatar.querySelector('button[type="submit"]');
-      if(btn){ btn.dataset._text=btn.textContent; btn.disabled=true; btn.textContent='Загрузка…'; }
-      try{
-        const data = await postForm('/auth/upload-avatar/', fd);
-        if(!data.successful){ alert(data.message||'Ошибка'); return; }
-        hide(avatarModal);
-        refreshAuthUI();
-      }catch(err){ alert(err.message||'Сеть/сервер недоступны'); }
-      finally{ if(btn){ btn.disabled=false; btn.textContent=btn.dataset._text||'Сохранить'; } }
-    });
+  // ==== AVATAR UPLOAD ====
+  formAvatar?.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(formAvatar);
+    const file = fd.get('avatar');
 
-    // Хук виджета: страховочный редирект на АБСОЛЮТНЫЙ коллбек
-    window.onTelegramAuth = function(user){
-      try{ console.debug('TG user', user); }catch{}
-      if(!location.href.startsWith(ABS_CALLBACK)){
-        const q = new URLSearchParams(user).toString();
-        location.href = ABS_CALLBACK + (ABS_CALLBACK.includes('?') ? '&' : '?') + q;
-      }
-    };
-  })();
-  </script>
+    if(!(file && ['image/jpeg','image/png','image/webp'].includes(file.type))){
+      alert('Допустимы JPG/PNG/WebP'); return;
+    }
+    if(file.size > 5*1024*1024){ alert('Файл слишком большой (макс 5MB)'); return; }
+
+    const btn = formAvatar.querySelector('button[type="submit"]');
+    if (btn){ btn.dataset._t = btn.textContent; btn.disabled = true; btn.textContent = 'Загрузка…'; }
+    try{
+      const data = await postForm('/auth/upload-avatar/', fd);
+      if(!data.successful){ alert(data.message||'Ошибка'); return; }
+      hide(avatarModal);
+      refreshAuthUI();
+    }catch(err){
+      alert(err.message || 'Сеть/сервер недоступны');
+    }finally{
+      if (btn){ btn.disabled = false; btn.textContent = btn.dataset._t || 'Сохранить'; }
+    }
+  });
+
+  // ==== CLOSE BUTTONS / ESC ====
+  $$('#authTgModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(tgModal)));
+  $$('#avatarModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(avatarModal)));
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){
+      if(!tgModal?.classList.contains('hidden')) hide(tgModal);
+      if(!avatarModal?.classList.contains('hidden')) hide(avatarModal);
+    }
+  });
+
+  // ==== TELEGRAM WIDGET (без data-onauth, редирект делает сам виджет) ====
+  // ВАЖНО: у бота в @BotFather должен быть настроен домен:
+  // /setdomain -> https://travel.ayolclub.uz
+  if (tgMountPoint){
+    const sc = document.createElement('script');
+    sc.async = true;
+    sc.src = 'https://telegram.org/js/telegram-widget.js?22';
+    sc.setAttribute('data-telegram-login', BOT_NAME);
+    sc.setAttribute('data-size', 'large');
+    sc.setAttribute('data-userpic', 'false');
+    sc.setAttribute('data-request-access', 'write');
+    // абсолютный callback-url, чтобы виджет точно редиректил
+    sc.setAttribute('data-auth-url', CALLBACK_ABS);
+    tgMountPoint.innerHTML = ''; // на всякий случай
+    tgMountPoint.appendChild(sc);
+  }
+})();
+</script>
+
 </body>
 </html>
