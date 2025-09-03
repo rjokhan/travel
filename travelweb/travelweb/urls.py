@@ -1,15 +1,20 @@
-# accounts/urls.py (или другой app, где у вас auth-views)
-from django.urls import path
-from .views import me, test_login, test_logout, telegram_callback
+# travelweb/urls.py
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
-    # проверка авторизации
-    path("me/", me, name="me"),
+    path("admin/", admin.site.urls),
 
-    # тестовые эндпоинты для проверки сессии
-    path("auth/test-login/", test_login, name="test_login"),
-    path("auth/test-logout/", test_logout, name="test_logout"),
+    # публичные страницы/туры
+    path("", include("travelapp.urls", namespace="travelapp")),
 
-    # колбэк от Telegram Login Widget
-    path("auth/telegram/callback/", telegram_callback, name="telegram_callback"),
+    # всё, что связано с авторизацией/профилем (me, email login, telegram callback, тестовые)
+    path("", include("accounts.urls")),
 ]
+
+# статика и медиа в режиме DEBUG
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
