@@ -1,19 +1,4 @@
 # travelapp/tg_auth_views.py
-"""
-Telegram WebApp login (session-based) для Django.
-
-POST /api/auth/telegram-login/
-Тело запроса:
-  Вариант A (WebApp, рекомендовано):
-    - initData = raw-строка из window.Telegram.WebApp.initData
-  Вариант B (fallback для Login Widget, не WebApp):
-    - id, username?, first_name?, last_name?, auth_date, hash
-
-Проверка подписи:
-  HMAC-SHA256(data_check_string, secret_key=sha256(BOT_TOKEN))
-  и сверка с полем 'hash'. Истекает через AUTH_MAX_AGE_SECONDS.
-"""
-
 import hmac
 import json
 import time
@@ -23,9 +8,9 @@ from typing import Dict, Tuple, Any, Optional
 
 from django.conf import settings
 from django.contrib.auth import login
-from django.http import JsonResponse, HttpRequest
+from django.http import JsonResponse, HttpRequest, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -51,11 +36,6 @@ def _require_bot_token() -> str:
 
 
 def _build_data_check_string(params: Dict[str, Any]) -> str:
-    """
-    Собираем data_check_string по документации Telegram:
-    - сортируем ключи (ASCII) кроме 'hash'
-    - если 'user' — словарь, сериализуем compact JSON без пробелов
-    """
     items = []
     for key in sorted(k for k in params.keys() if k != "hash"):
         val = params[key]
@@ -68,9 +48,6 @@ def _build_data_check_string(params: Dict[str, Any]) -> str:
 
 
 def _verify_hash(params: Dict[str, Any], bot_token: str) -> bool:
-    """
-    Сравнение HMAC-SHA256(data_check_string, secret=sha256(bot_token)) с params['hash'].
-    """
     provided_hash = params.get("hash", "")
     secret_key = hashlib.sha256(bot_token.encode("utf-8")).digest()
     data_check_string = _build_data_check_string(params)
@@ -79,15 +56,10 @@ def _verify_hash(params: Dict[str, Any], bot_token: str) -> bool:
 
 
 def _parse_init_data(init_data_raw: str) -> Dict[str, Any]:
-    """
-    Парсим Telegram.WebApp.initData (querystring-like):
-    'query_id=...&user=%7B...%7D&auth_date=...&hash=...'
-    """
     parsed = urllib.parse.parse_qs(init_data_raw, keep_blank_values=True, strict_parsing=False)
     flat: Dict[str, Any] = {}
     for k, v in parsed.items():
         flat[k] = v[0] if v else ""
-    # user JSON → dict
     if "user" in flat:
         try:
             flat["user"] = json.loads(flat["user"])
@@ -97,11 +69,6 @@ def _parse_init_data(init_data_raw: str) -> Dict[str, Any]:
 
 
 def _extract_telegram_user(params: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
-    """
-    Возвращает (user_dict, error_message). Поддерживает:
-    - WebApp initData: params['user'] — dict
-    - Login Widget: плоские поля id/username/first_name/last_name
-    """
     if isinstance(params.get("user"), dict):
         u = params["user"]
         if "id" not in u:
@@ -113,7 +80,6 @@ def _extract_telegram_user(params: Dict[str, Any]) -> Tuple[Optional[Dict[str, A
             "last_name": u.get("last_name"),
         }, None
 
-    # fallback — плоские поля
     required = ("id", "auth_date", "hash")
     if all(k in params for k in required):
         return {
@@ -127,14 +93,10 @@ def _extract_telegram_user(params: Dict[str, Any]) -> Tuple[Optional[Dict[str, A
 
 
 def _ensure_local_user(tg: Dict[str, Any]) -> User:
-    """
-    Создаём/находим локального юзера. username: @username если есть, иначе 'tg_<id>'.
-    """
     tg_id = str(tg["id"])
     base_username = (tg.get("username") or "").strip()
     candidate = base_username if base_username else f"tg_{tg_id}"
 
-    # если занято — добавляем суффикс
     username = candidate
     suffix = 1
     while User.objects.filter(username__iexact=username).exclude(username=candidate).exists():
@@ -149,7 +111,6 @@ def _ensure_local_user(tg: Dict[str, Any]) -> User:
         user = User.objects.create_user(username=username)
         user.set_unusable_password()
 
-    # Обновим имена, если есть
     first_name = (tg.get("first_name") or "").strip()
     last_name = (tg.get("last_name") or "").strip()
     changed = False
@@ -168,67 +129,46 @@ def _ensure_local_user(tg: Dict[str, Any]) -> User:
 @csrf_exempt
 @require_POST
 def telegram_login(request: HttpRequest) -> JsonResponse:
-    """
-    Проверяем подпись Telegram и логиним пользователя (cookie-сессия Django).
-    Принимает:
-      - initData (WebApp)
-      ИЛИ
-      - id/username/first_name/last_name/auth_date/hash (Login Widget)
-    """
+    """WebApp: принимаем initData POST'ом, валидируем, логиним."""
     try:
         bot_token = _require_bot_token()
     except RuntimeError as e:
         return _err(str(e), status=500)
 
     init_data_raw = request.POST.get("initData", "").strip()
+    params = _parse_init_data(init_data_raw) if init_data_raw else {
+        k: (request.POST.get(k) or "").strip()
+        for k in ("id", "username", "first_name", "last_name", "auth_date", "hash")
+        if k in request.POST
+    }
 
-    # Normalize params
-    if init_data_raw:
-        params = _parse_init_data(init_data_raw)
-    else:
-        params = {
-            k: (request.POST.get(k) or "").strip()
-            for k in ("id", "username", "first_name", "last_name", "auth_date", "hash")
-            if k in request.POST
-        }
-
-    # Базовые проверки
     if "auth_date" not in params or "hash" not in params:
         return _err("Missing auth_date/hash.", status=400)
 
-    # Срок годности
     try:
         auth_date = int(params["auth_date"])
     except ValueError:
         return _err("Invalid auth_date.", status=400)
-
-    now = int(time.time())
-    if now - auth_date > AUTH_MAX_AGE_SECONDS:
+    if int(time.time()) - auth_date > AUTH_MAX_AGE_SECONDS:
         return _err("Auth data is too old. Please re-open via Telegram.", status=401)
 
-    # Проверка подписи
     if not _verify_hash(params, bot_token):
         return _err("Telegram signature check failed.", status=401)
 
-    # Достаём юзера из параметров
     tg_user, err = _extract_telegram_user(params)
-    if err:
-        return _err(err, status=400)
-    if not tg_user or not tg_user.get("id"):
-        return _err("Invalid Telegram user.", status=400)
+    if err or not tg_user or not tg_user.get("id"):
+        return _err(err or "Invalid Telegram user.", status=400)
 
-    # Создаём/находим и логиним
     user = _ensure_local_user(tg_user)
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
 
-    # Вернём avatar_url, если уже есть (загрузить можно отдельным эндпоинтом)
     profile = getattr(user, "profile", None)
     avatar_url = None
-    if profile and profile.avatar:
+    if profile and getattr(profile, "avatar", None):
         try:
             avatar_url = request.build_absolute_uri(profile.avatar.url)
         except Exception:
-            avatar_url = None
+            avatar_url = profile.avatar.url
 
     return _ok({
         "user": {
@@ -240,3 +180,54 @@ def telegram_login(request: HttpRequest) -> JsonResponse:
         },
         "message": "Logged in via Telegram.",
     })
+
+
+@require_GET
+def telegram_callback(request: HttpRequest):
+    """
+    Login Widget: принимает GET-параметры (?id=...&auth_date=...&hash=...), валидирует и логинит.
+    После — делает redirect на ?next=... или на '/'.
+    """
+    try:
+        bot_token = _require_bot_token()
+    except RuntimeError as e:
+        return _err(str(e), status=500)
+
+    params: Dict[str, Any] = {k: request.GET.get(k, "") for k in request.GET.keys()}
+    if "auth_date" not in params or "hash" not in params:
+        return _err("Missing auth_date/hash.", status=400)
+
+    try:
+        auth_date = int(params.get("auth_date", "0"))
+    except ValueError:
+        return _err("Invalid auth_date.", status=400)
+    if int(time.time()) - auth_date > AUTH_MAX_AGE_SECONDS:
+        return _err("Auth data is too old. Please re-open via Telegram.", status=401)
+
+    # Для совместимости с WebApp-форматом (если придёт user=JSON)
+    if "user" in params:
+        try:
+            params["user"] = json.loads(params["user"])
+        except Exception:
+            pass
+
+    if not _verify_hash(params, bot_token):
+        return _err("Telegram signature check failed.", status=401)
+
+    tg_user, err = _extract_telegram_user(params)
+    if err or not tg_user or not tg_user.get("id"):
+        return _err(err or "Invalid Telegram user.", status=400)
+
+    user = _ensure_local_user(tg_user)
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+
+    # redirect back
+    nxt = request.GET.get("next") or "/"
+    # упрощённая защита: не пускаем на чужие домены
+    try:
+        parsed = urllib.parse.urlparse(nxt)
+        if parsed.netloc and parsed.netloc != request.get_host():
+            nxt = "/"
+    except Exception:
+        nxt = "/"
+    return HttpResponseRedirect(nxt)
