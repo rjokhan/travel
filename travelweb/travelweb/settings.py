@@ -71,14 +71,11 @@ TEMPLATES = [
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
-                # стандартные процессоры Django
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.template.context_processors.static",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                # ⚠️ УДАЛЕНО: "travelweb.context_processors.telegram_settings"
-                # Добавим снова, когда появится файл travelweb/context_processors.py и функция.
             ],
         },
     },
@@ -117,7 +114,7 @@ STATICFILES_DIRS = [
     BASE_DIR / "staticfiles",
 ]
 STATIC_ROOT = Path("/var/www/travel_staticfiles")
-MEDIA_ROOT = Path("/var/www/travel_media")
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -125,8 +122,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "profile"
 LOGOUT_REDIRECT_URL = "login"
-TELEGRAM_LOGIN_SECRET = os.getenv("TELEGRAM_LOGIN_SECRET", "")
 
+# ========= TELEGRAM LOGIN =========
+# В .env укажите TELEGRAM_BOT_TOKEN и TELEGRAM_BOT_NAME
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_BOT_NAME = os.getenv("TELEGRAM_BOT_NAME", "travel_ayolclub_bot")  # без @
 
 # ========= EMAIL =========
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
@@ -137,13 +137,6 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@travel.ayolclub.uz")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
-
-# ========= TELEGRAM LOGIN =========
-# добавьте в .env:
-# TELEGRAM_BOT_TOKEN=123456:ABCDEF...
-# TELEGRAM_BOT_NAME=@YourBot
-TELEGRAM_BOT_TOKEN = "8174443274:AAEWHB1BreYgWWSx5Ndd_jYG9lx2UekE-X4"
-TELEGRAM_BOT_NAME  = "travel_ayolclub_bot"  # без @
 
 # ========= JAZZMIN =========
 JAZZMIN_SETTINGS = {
@@ -199,7 +192,7 @@ CITIES_LIGHT_CITY_SOURCES = [
     "https://download.geonames.org/export/dump/cities1000.zip",
 ]
 
-# ========= LOGGING (в stdout -> подхватит gunicorn) =========
+# ========= LOGGING =========
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -210,7 +203,6 @@ LOGGING = {
         "handlers": ["console"],
         "level": "INFO",
     },
-    # Чуть подробнее логи для вашего приложения
     "loggers": {
         "accounts": {"handlers": ["console"], "level": "INFO", "propagate": True},
         "travelapp": {"handlers": ["console"], "level": "INFO", "propagate": True},

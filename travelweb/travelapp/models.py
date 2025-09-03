@@ -11,12 +11,10 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
-from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
-User = get_user_model()
+from django.conf import settings
 
 
 # ---------------------- Country ----------------------
@@ -78,7 +76,11 @@ def avatar_upload_to(instance, filename: str) -> str:
 
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="profile",
+    )
     display_name = models.CharField("Имя для отображения", max_length=150, blank=True)
     avatar = models.ImageField(
         "Аватар",
@@ -94,10 +96,12 @@ class Profile(models.Model):
         verbose_name_plural = "Профили"
 
     def __str__(self) -> str:
-        return f"Profile({getattr(self.user, 'email', self.user.username)})"
+        u = getattr(self, "user", None)
+        ident = getattr(u, "email", None) or getattr(u, "username", "user")
+        return f"Profile({ident})"
 
 
-@receiver(post_save, sender=User)
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(
@@ -183,7 +187,7 @@ class Trip(models.Model):
     )
 
     country = models.ForeignKey(
-        Country,
+        "Country",
         verbose_name="Страна",
         on_delete=models.PROTECT,
         related_name="trips",

@@ -135,16 +135,10 @@
       <button class="ac-modal__close" data-close>&times;</button>
 
       <h3 id="authTitle" class="ac-title">Войдите через Telegram</h3>
-      <p class="ac-sub">Нажмите кнопку ниже и подтвердите вход в Telegram.</p>
+      <p class="ac-sub">Нажмите кнопку ниже — вход произойдёт через Telegram WebApp.</p>
 
-      <div class="ac-tg">
-        <!-- Единственный виджет. Абсолютный callback обязателен -->
-        <script async src="https://telegram.org/js/telegram-widget.js?22"
-                data-telegram-login="{{ TELEGRAM_BOT_NAME|default:'travel_ayolclub_bot' }}"
-                data-size="large"
-                data-userpic="false"
-                data-auth-url="https://{{ request.get_host }}{% url 'accounts:telegram_callback' %}?next={{ request.path }}"
-                data-request-access="write"></script>
+      <div class="ac-actions" style="justify-content:center;margin:8px 0 0">
+        <button id="btnTgLogin" class="btn btn-primary" type="button">Войти через Telegram</button>
       </div>
 
       <div class="ac-or"><span>если кнопка не работает</span></div>
@@ -154,7 +148,7 @@
            target="_blank" rel="noopener">Открыть бота в Telegram</a>
       </div>
 
-      <p class="ac-hint">После подтверждения вы вернётесь на сайт автоматически.</p>
+      <p class="ac-hint">После подтверждения окно закроется автоматически.</p>
     </div>
   </div>
 
@@ -193,10 +187,9 @@
     .ac-tg{display:flex;justify-content:center}
   </style>
 
-  <!-- JS: auth + avatar + опрос /auth/me/ -->
+  <!-- JS: auth + telegram login + avatar + опрос /auth/me/ -->
   <script>
   (function(){
-    // ==== DOM ====
     const $  = s => document.querySelector(s);
     const $$ = s => Array.from(document.querySelectorAll(s));
     const show = el => el && el.classList.remove('hidden');
@@ -206,59 +199,105 @@
     const avatarModal = $('#avatarModal');
     const navAvatar   = $('#navAvatar');
     const formAvatar  = $('#formAvatar');
+    const btnTgLogin  = $('#btnTgLogin');
 
-    // ==== helpers ====
+    // === cookies / csrf ===
     function getCookie(name){
-      const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)'); return m ? m.pop() : '';
+      const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+      return m ? m.pop() : '';
     }
     const csrftoken = getCookie('csrftoken');
 
+    // === networking helpers ===
     async function getJSON(url){
       const r = await fetch(url, { credentials:'same-origin' });
       return r.json();
     }
-    async function postForm(url, fd){
-      const r = await fetch(url, {
-        method:'POST', body: fd, credentials:'same-origin',
-        headers:{ 'X-CSRFToken': csrftoken }
-      });
-      const ok = r.ok; let data = {};
-      try{ data = await r.json(); }catch{}
-      if(!ok) throw new Error(data.message || ('HTTP ' + r.status));
+    async function postForm(url, fd, opts={}){
+      const headers = Object.assign({'X-CSRFToken': csrftoken}, opts.headers||{});
+      const r = await fetch(url, { method:'POST', body: fd, credentials:'same-origin', headers });
+      let data={}; try{ data = await r.json(); } catch {}
+      if(!r.ok || data.successful === false){
+        throw new Error(data.message || ('HTTP '+r.status));
+      }
       return data;
     }
 
-    // ==== auth state ====
+    // === normalize /auth/me/ shapes ===
+    function parseMe(me){
+      // поддерживаем 2 формата: {authenticated: bool, avatar_url?...} и {user: {...}}
+      if (typeof me?.authenticated === 'boolean') {
+        return {
+          isAuth: me.authenticated,
+          avatar: me.avatar_url || null,
+          user: me.user || null
+        };
+      }
+      if (me?.user) {
+        return {
+          isAuth: true,
+          avatar: me.user.avatar_url || null,
+          user: me.user
+        };
+      }
+      return { isAuth: false, avatar: null, user: null };
+    }
+
     async function refreshAuthUI(){
       try{
-        const me = await getJSON('/auth/me/');
-        if(me.authenticated){
+        const raw = await getJSON('/auth/me/');
+        const me  = parseMe(raw);
+        if(me.isAuth){
           hide(tgModal);
-          if(me.avatar_url && navAvatar){
+          if(me.avatar && navAvatar){
             navAvatar.innerHTML =
-              `<img src="${me.avatar_url}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
-          }else if(avatarModal && avatarModal.classList.contains('hidden')){
+              `<img src="${me.avatar}" alt="avatar" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
+          } else {
             show(avatarModal);
           }
           return true;
-        }else{
-          if(tgModal && tgModal.classList.contains('hidden')) show(tgModal);
+        } else {
+          show(tgModal);
           return false;
         }
-      }catch{ return false; }
+      }catch(e){
+        // если /auth/me/ не доступен — не рушим UI
+        return false;
+      }
     }
 
     // стартовая проверка
     refreshAuthUI();
-    // короткий поллинг — подхватить сессию после подтверждения в Telegram
+    // подтягиваем сессию после TG входа (если открывался WebApp)
     let tries = 0;
-    const t = setInterval(async ()=>{
-      tries += 1;
+    const poll = setInterval(async ()=>{
+      tries++;
       const ok = await refreshAuthUI();
-      if(ok || tries > 20) clearInterval(t); // ~30 сек
+      if (ok || tries > 20) clearInterval(poll); // ~30 сек
     }, 1500);
 
-    // ==== avatar upload ====
+    // === Telegram login via WebApp (initData) ===
+    async function loginViaTelegram(){
+      // если открыт в Telegram WebApp — есть initData
+      const initData = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || "";
+      if(!initData){
+        alert('Откройте сайт из Telegram-бота, чтобы войти одной кнопкой.');
+        return;
+      }
+      const fd = new FormData();
+      fd.append('initData', initData);
+      try{
+        const data = await postForm('/auth/telegram-login/', fd);
+        // успех → обновим UI
+        await refreshAuthUI();
+      }catch(err){
+        alert(err.message || 'Не удалось войти через Telegram');
+      }
+    }
+
+    btnTgLogin?.addEventListener('click', loginViaTelegram);
+
+    // === avatar upload ===
     formAvatar?.addEventListener('submit', async (e)=>{
       e.preventDefault();
       const fd = new FormData(formAvatar);
@@ -272,9 +311,8 @@
       if(btn){ btn.dataset._t = btn.textContent; btn.disabled = true; btn.textContent = 'Загрузка…'; }
       try{
         const data = await postForm('/auth/upload-avatar/', fd);
-        if(!data.successful){ alert(data.message||'Ошибка'); return; }
         hide(avatarModal);
-        refreshAuthUI();
+        await refreshAuthUI();
       }catch(err){
         alert(err.message || 'Сеть/сервер недоступны');
       }finally{
@@ -282,7 +320,7 @@
       }
     });
 
-    // ==== close / esc ====
+    // === close / esc ===
     $$('#authTgModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(tgModal)));
     $$('#avatarModal [data-close]').forEach(b => b.addEventListener('click', ()=> hide(avatarModal)));
     document.addEventListener('keydown', (e)=>{

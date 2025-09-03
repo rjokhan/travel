@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 travelapp/auth_views.py
-JSON‑эндпоинты для регистрации/входа с подтверждением e‑mail и загрузкой аватарки.
-В DEV для простоты POST‑вью помечены csrf_exempt. Для продакшена лучше подключить CSRF.
+JSON-эндпоинты для регистрации/входа с подтверждением e-mail и загрузкой аватарки.
+В DEV для простоты POST-вью помечены csrf_exempt. Для продакшена лучше подключить CSRF.
 """
 
 import random
@@ -11,7 +11,7 @@ import mimetypes
 from typing import Optional
 
 from django.http import JsonResponse, HttpRequest
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.core.mail import send_mail
@@ -43,8 +43,8 @@ def _normalize_email(email: str) -> str:
 
 def _gen_username_from_email(email: str) -> str:
     """
-    Для стандартной Django‑модели нужен username.
-    Генерируем уникальный username по local‑части почты.
+    Для стандартной Django-модели нужен username.
+    Генерируем уникальный username по local-части почты.
     """
     base = re.sub(r"[^a-z0-9._-]+", "", email.split("@", 1)[0].lower())[:30] or "user"
     cand = base
@@ -63,7 +63,7 @@ def _gen_username_from_email(email: str) -> str:
 def request_code(request: HttpRequest) -> JsonResponse:
     """
     Шаг 1 регистрации: получаем name/email/password,
-    отправляем 6‑значный код на почту, сохраняем RegistrationRequest,
+    отправляем 6-значный код на почту, сохраняем RegistrationRequest,
     сырой пароль временно кладём в сессию.
     """
     name = (request.POST.get("name") or "").strip()
@@ -71,10 +71,10 @@ def request_code(request: HttpRequest) -> JsonResponse:
     password = request.POST.get("password") or ""
 
     if not name or not email or not password:
-        return _err("Заполните имя, e‑mail и пароль.")
+        return _err("Заполните имя, e-mail и пароль.")
 
     if User.objects.filter(Q(email__iexact=email)).exists():
-        return _err("Пользователь с таким e‑mail уже зарегистрирован.", status=409)
+        return _err("Пользователь с таким e-mail уже зарегистрирован.", status=409)
 
     # создаём/обновляем черновик + код
     code = f"{random.randint(100000, 999999)}"
@@ -97,7 +97,7 @@ def request_code(request: HttpRequest) -> JsonResponse:
             fail_silently=False,
         )
     except Exception as e:
-        # Не роняем API из‑за временной ошибки SMTP; пишем в лог
+        # Не роняем API из-за временной ошибки SMTP; пишем в лог
         print("E-mail send failed:", e)
 
     return _ok({"message": "Код отправлен на почту."})
@@ -130,7 +130,7 @@ def verify_code(request: HttpRequest) -> JsonResponse:
         rr.delete()
         return _err("Пароль не найден. Запросите код заново.", status=410)
 
-    # создаём пользователя (обычная Django‑модель: нужен username)
+    # создаём пользователя (обычная Django-модель: нужен username)
     username = _gen_username_from_email(email)
     user = User.objects.create_user(
         username=username,
@@ -165,7 +165,7 @@ def verify_code(request: HttpRequest) -> JsonResponse:
 @csrf_exempt
 def upload_avatar(request: HttpRequest) -> JsonResponse:
     """
-    Обязательная загрузка аватарки после верификации.
+    Загрузка/смена аватарки.
     """
     if not request.user.is_authenticated:
         return _err("Требуется аутентификация.", status=401)
@@ -178,24 +178,30 @@ def upload_avatar(request: HttpRequest) -> JsonResponse:
     if file.size > 5 * 1024 * 1024:
         return _err("Файл слишком большой (до 5 МБ).")
 
-    # простая MIME‑валидация (помимо расширения)
+    # простая MIME-валидация (помимо расширения)
     guessed, _ = mimetypes.guess_type(file.name)
     if guessed not in {"image/jpeg", "image/png", "image/webp"}:
         return _err("Поддерживаются только JPG, PNG или WEBP.")
 
     profile: Profile = request.user.profile  # type: ignore[attr-defined]
     profile.avatar = file
-    profile.save()
+    profile.save(update_fields=["avatar"])
 
-    return _ok({"message": "Аватар сохранён.", "avatar_url": profile.avatar.url})
+    # абсолютный URL — надёжнее за прокси/Nginx
+    try:
+        avatar_abs = request.build_absolute_uri(profile.avatar.url)
+    except Exception:
+        avatar_abs = profile.avatar.url
+
+    return _ok({"message": "Аватар сохранён.", "avatar_url": avatar_abs})
 
 
 @require_POST
 @csrf_exempt
 def login_view(request: HttpRequest) -> JsonResponse:
     """
-    Вход по e‑mail и паролю.
-    Т.к. стандартный бэкенд логинит по username, найдём username по e‑mail.
+    Вход по e-mail и паролю.
+    Т.к. стандартный бэкенд логинит по username, найдём username по e-mail.
     """
     email = _normalize_email(request.POST.get("email"))
     password = request.POST.get("password") or ""
@@ -203,19 +209,19 @@ def login_view(request: HttpRequest) -> JsonResponse:
     try:
         user = User.objects.get(email__iexact=email)
     except User.DoesNotExist:
-        return _err("Неверная пара e‑mail/пароль.", status=401)
+        return _err("Неверная пара e-mail/пароль.", status=401)
 
     # проверяем, что почта подтверждена
     try:
         if not user.profile.is_email_verified:  # type: ignore[attr-defined]
-            return _err("Подтвердите e‑mail перед входом.", status=403)
+            return _err("Подтвердите e-mail перед входом.", status=403)
     except Profile.DoesNotExist:
         return _err("Профиль не найден. Обратитесь в поддержку.", status=500)
 
     # аутентификация через username
     user_auth = authenticate(request, username=user.username, password=password)
     if user_auth is None:
-        return _err("Неверная пара e‑mail/пароль.", status=401)
+        return _err("Неверная пара e-mail/пароль.", status=401)
 
     login(request, user_auth)
     need_avatar = not bool(getattr(user_auth.profile, "avatar", None))  # type: ignore[attr-defined]
@@ -229,6 +235,7 @@ def logout_view(request: HttpRequest) -> JsonResponse:
     return _ok({"message": "Вы вышли из аккаунта."})
 
 
+@require_GET
 @csrf_exempt
 def me(request: HttpRequest) -> JsonResponse:
     """
@@ -236,12 +243,22 @@ def me(request: HttpRequest) -> JsonResponse:
     """
     if not request.user.is_authenticated:
         return _ok({"authenticated": False})
+
     u = request.user
     prof: Profile = u.profile  # type: ignore[attr-defined]
+
+    # абсолютный URL
+    avatar_abs = None
+    if getattr(prof, "avatar", None):
+        try:
+            avatar_abs = request.build_absolute_uri(prof.avatar.url)
+        except Exception:
+            avatar_abs = prof.avatar.url
+
     return _ok({
         "authenticated": True,
         "email": u.email,
         "name": prof.display_name or u.first_name or u.username,
-        "avatar_url": (prof.avatar.url if prof.avatar else None),
+        "avatar_url": avatar_abs,
         "is_email_verified": prof.is_email_verified,
     })

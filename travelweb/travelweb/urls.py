@@ -3,24 +3,26 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import HttpResponse
+from django.http import JsonResponse
 
-
-def mailjet_probe(_):
-    # пустой ответ text/plain (для Mailjet проверки домена)
-    return HttpResponse("", content_type="text/plain")
-
+def healthcheck(_request):
+    return JsonResponse({"ok": True, "app": "travelweb"})
 
 urlpatterns = [
     path("admin/", admin.site.urls),
 
-    # главный сайт (роуты travelapp)
+    # 🛂 Аутентификация (me / upload-avatar / telegram-login / и т.п.)
+    path("auth/", include("travelapp.auth_urls")),
+
+    # 🌐 Основной сайт (index, trips и др.)
+    # если у вашего приложения есть namespaced urls с app_name='travelapp':
     path("", include(("travelapp.urls", "travelapp"), namespace="travelapp")),
 
-    # авторизация/аккаунты (Telegram login и т.д.)
-    path("auth/", include(("accounts.urls", "accounts"), namespace="accounts")),
+    # простая проверка доступности
+    path("health/", healthcheck, name="healthcheck"),
 ]
 
-# медиа в режиме DEBUG
+# 📦 Статика/медиа для DEV
 if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
