@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
 """
 travelapp/auth_views.py
-JSON-эндпоинты для регистрации/входа с подтверждением e-mail и загрузкой аватарки.
+JSON-эндпоинты для регистрации/входа с подтверждением e-mail и загрузкой аватарки,
+а также Telegram Login (GET-callback) + тестовые эндпоинты для быстрой диагностики сессий.
+
 В DEV для простоты POST-вью помечены csrf_exempt. Для продакшена лучше подключить CSRF.
 """
 
 import random
 import re
 import mimetypes
+import hmac
+import hashlib
+import time
+import logging
 from typing import Optional
 
-from django.http import JsonResponse, HttpRequest
+from django.http import JsonResponse, HttpRequest, HttpResponseRedirect
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import get_user_model, authenticate, login, logout
@@ -22,6 +28,7 @@ from django.db.models import Q
 from .models import RegistrationRequest, Profile
 
 User = get_user_model()
+log = logging.getLogger("auth_views")
 
 
 # ---------- helpers ----------
@@ -49,14 +56,107 @@ def _gen_username_from_email(email: str) -> str:
     base = re.sub(r"[^a-z0-9._-]+", "", email.split("@", 1)[0].lower())[:30] or "user"
     cand = base
     n = 1
-    while User.objects.filter(username=cand).exists():
+    while User.objects.filter(username__iexact=cand).exists():
         suffix = f"-{n}"
         cand = (base[: (30 - len(suffix))] + suffix)
         n += 1
     return cand
 
 
-# ---------- endpoints ----------
+# ---------- Telegram GET callback ----------
+
+def _check_tg_signature(params: dict) -> bool:
+    """
+    Проверка подписи Telegram Login Widget (GET-callback):
+    HMAC_SHA256(data_check_string, secret=sha256(BOT_TOKEN)) == hash
+    """
+    bot_token = getattr(settings, "TELEGRAM_BOT_TOKEN", "")
+    if not bot_token:
+        log.error("TELEGRAM_BOT_TOKEN is not set in settings.")
+        return False
+
+    provided = params.get("hash", "")
+    # собираем data_check_string из всех ключей кроме 'hash'
+    data_check_string = "\n".join(
+        f"{k}={params[k]}" for k in sorted(k for k in params.keys() if k != "hash")
+    )
+    secret = hashlib.sha256(bot_token.encode("utf-8")).digest()
+    digest = hmac.new(secret, data_check_string.encode("utf-8"), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(digest, provided)
+
+
+@require_GET
+def telegram_callback(request: HttpRequest):
+    """
+    Callback от Telegram Login Widget (GET).
+    Пример URL: /auth/telegram/callback/?id=...&username=...&auth_date=...&hash=...&photo_url=...
+    1) Проверяем подпись
+    2) Создаём/находим пользователя
+    3) login(request, user)
+    4) redirect на главную (/) — чтобы браузер поставил sessionid к основному домену
+    """
+    params = request.GET.dict()
+    # Лог для быстрой диагностики (не пишем персональные данные)
+    log.warning("TG GET callback keys=%s", list(params.keys()))
+
+    # базовые поля
+    if not {"auth_date", "hash"}.issubset(params.keys()):
+        return HttpResponseRedirect("/")
+
+    # актуальность по времени (24 часа)
+    try:
+        auth_date = int(params.get("auth_date", "0"))
+    except ValueError:
+        return HttpResponseRedirect("/")
+    if abs(time.time() - auth_date) > 24 * 60 * 60:
+        return HttpResponseRedirect("/")
+
+    # подпись
+    if not _check_tg_signature(params):
+        log.warning("TG callback: hash mismatch")
+        return HttpResponseRedirect("/")
+
+    # создаём/логиним
+    tg_id = params.get("id")
+    username = params.get("username") or f"user_{tg_id}"
+    photo = params.get("photo_url")
+
+    if not tg_id:
+        return HttpResponseRedirect("/")
+
+    # username храним в виде tg_<id>, чтобы не конфликтовать с e-mail регистрациями
+    user, _ = User.objects.get_or_create(
+        username=f"tg_{tg_id}",
+        defaults={"first_name": username},
+    )
+    login(request, user)
+    # можно хранить avatar_url в сессии для /me/
+    if photo:
+        request.session["avatar_url"] = photo
+
+    return HttpResponseRedirect("/")
+
+
+# ---------- тестовые эндпоинты для диагностики сессий ----------
+
+@require_GET
+def test_login(request: HttpRequest):
+    """
+    Принудительный вход для отладки (обходит Телеграм и e-mail поток).
+    """
+    u, _ = User.objects.get_or_create(username="debug_user")
+    login(request, u)
+    request.session["avatar_url"] = "https://example.com/x.png"
+    return HttpResponseRedirect("/")
+
+
+@require_GET
+def test_logout(request: HttpRequest):
+    logout(request)
+    return HttpResponseRedirect("/")
+
+
+# ---------- E-MAIL регистрация / вход ----------
 
 @require_POST
 @csrf_exempt
@@ -85,7 +185,7 @@ def request_code(request: HttpRequest) -> JsonResponse:
     request.session[f"reg_pwd:{email}"] = password
     request.session.set_expiry(60 * 15)
 
-    # письмо (в DEV улетит в консоль, если в settings включён console backend)
+    # письмо
     subject = "Код подтверждения — A CLUB TRAVEL"
     body = f"Ваш код подтверждения: {code}\nКод действует 15 минут."
     try:
@@ -97,8 +197,7 @@ def request_code(request: HttpRequest) -> JsonResponse:
             fail_silently=False,
         )
     except Exception as e:
-        # Не роняем API из-за временной ошибки SMTP; пишем в лог
-        print("E-mail send failed:", e)
+        log.warning("E-mail send failed: %s", e)
 
     return _ok({"message": "Код отправлен на почту."})
 
@@ -178,9 +277,9 @@ def upload_avatar(request: HttpRequest) -> JsonResponse:
     if file.size > 5 * 1024 * 1024:
         return _err("Файл слишком большой (до 5 МБ).")
 
-    # простая MIME-валидация (помимо расширения)
-    guessed, _ = mimetypes.guess_type(file.name)
-    if guessed not in {"image/jpeg", "image/png", "image/webp"}:
+    # MIME-валидация
+    content_type = getattr(file, "content_type", None) or mimetypes.guess_type(file.name)[0]
+    if content_type not in {"image/jpeg", "image/png", "image/webp"}:
         return _err("Поддерживаются только JPG, PNG или WEBP.")
 
     profile: Profile = request.user.profile  # type: ignore[attr-defined]
@@ -255,10 +354,14 @@ def me(request: HttpRequest) -> JsonResponse:
         except Exception:
             avatar_abs = prof.avatar.url
 
-    return _ok({
+    payload = {
         "authenticated": True,
         "email": u.email,
         "name": prof.display_name or u.first_name or u.username,
         "avatar_url": avatar_abs,
         "is_email_verified": prof.is_email_verified,
-    })
+    }
+    # Для быстрой диагностики можно вернуть ключ сессии в DEBUG
+    if getattr(settings, "DEBUG", False):
+        payload["session_key"] = request.session.session_key
+    return _ok(payload)

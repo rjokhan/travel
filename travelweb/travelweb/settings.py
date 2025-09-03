@@ -30,11 +30,26 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.ayolclub.uz",
 ]
 
+# ---- прокси/https ----
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
+# ---- cookie / сессии ----
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+
+# ВАЖНО: чтобы сессия была видна на основном сайте после callback
+# (если когда-нибудь дернём колбэк/поддомены), закрепляем на базовый домен
+SESSION_COOKIE_DOMAIN = ".ayolclub.uz"
+CSRF_COOKIE_DOMAIN = ".ayolclub.uz"
+
+# Доп. защита (не мешает авторизации)
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 # ========= APPS =========
 INSTALLED_APPS = [
@@ -109,10 +124,12 @@ USE_TZ = True
 STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 
+# каталоги с исходниками статики (откуда collectstatic собирает)
 STATICFILES_DIRS = [
     BASE_DIR / "static",
     BASE_DIR / "staticfiles",
 ]
+# куда collectstatic складывает итоговую статику (Nginx отдаёт отсюда)
 STATIC_ROOT = Path("/var/www/travel_staticfiles")
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
